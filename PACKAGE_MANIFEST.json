@@ -1,0 +1,1460 @@
+{
+  "package": "parallelworld",
+  "snapshot_date": "2026-10-08",
+  "components": [
+    "parallelworld_understanding",
+    "parallelworld_manipulation"
+  ],
+  "file_count_excluding_manifest": 283,
+  "bytes_excluding_manifest": 5673553,
+  "validation": {
+    "static_checks": {
+      "python_files": 166,
+      "shell_files": 38,
+      "toml_files": 1,
+      "json_files": 10,
+      "readme_links": 5
+    },
+    "internal_name_audit": true,
+    "cli_help": true,
+    "metadata_and_metrics_fixtures": true,
+    "offline_tests_passed": 184,
+    "answer_evidence_default": "top1-route",
+    "explicit_all_override_checked": true,
+    "suite_planner_defaults_checked": true,
+    "planner_defaults": {
+      "Spatial": "gpt-5.5",
+      "Object": "gpt-5.5",
+      "Goal": "gpt-5.6-sol",
+      "LIBERO-10": "gpt-5.6-sol"
+    },
+    "inference_executed": false,
+    "available_understanding_methods": [
+      "parallelworld",
+      "baseline_active",
+      "baseline_passive",
+      "branching"
+    ],
+    "retained_understanding_entrypoints_checked": true,
+    "baseline_summary_fixtures_checked": true,
+    "documentation_links_checked": true,
+    "libero_evaluation_summary_fixtures_checked": true
+  },
+  "files": [
+    {
+      "path": ".env.example",
+      "bytes": 1692,
+      "sha256": "0b025fcce00ec9f04387bfbc8237626b74869079624d67d0c6b70d8172a23b05"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 282,
+      "sha256": "d5a3f18dd74dcee422b0649ed0cdfebcda25e4c02b20614870d6982bdd9ca492"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3155,
+      "sha256": "de034d8fdd5f46e3781dd2febdff7bef2d6088c8448a791ba9af135d874f030e"
+    },
+    {
+      "path": "configs/environment_versions.json",
+      "bytes": 857,
+      "sha256": "a240b8e10ab8cc0c63ec2afeef68e1383ae847d11839c41d4c1e44d98768ed04"
+    },
+    {
+      "path": "configs/manipulation_object_swap.json",
+      "bytes": 6079,
+      "sha256": "9720c469586d9147e792008aa17a837752a6247169915d3827a159d9328886a6"
+    },
+    {
+      "path": "configs/understanding.json",
+      "bytes": 440,
+      "sha256": "b87a9f588f37bd5eec689f0ce308f530ed39f21d552d59fb966047c9770c9778"
+    },
+    {
+      "path": "parallelworld_manipulation/.gitignore",
+      "bytes": 350,
+      "sha256": "be8fbe55f946b6b46f7b4d59dbef0c3b4d9cf741a06a4389764501dede47688b"
+    },
+    {
+      "path": "parallelworld_manipulation/.pre-commit-config.yaml",
+      "bytes": 389,
+      "sha256": "b7406da14ea2441e9da40cad7d6f39b93bdb02f0f81e03369cb28cdc7ec6f5e7"
+    },
+    {
+      "path": "parallelworld_manipulation/README.md",
+      "bytes": 10241,
+      "sha256": "940326b674c88072668adc7c12316dcfe2c88c3e497e7e9bdc15ab20c03a7eaa"
+    },
+    {
+      "path": "parallelworld_manipulation/evaluate_manipulation.sh",
+      "bytes": 16217,
+      "sha256": "d2e3a5f45b13ac29935a3e24b24d2c46afdfccaa3c828e44222f27b746e6293b"
+    },
+    {
+      "path": "parallelworld_manipulation/evaluate_spatial.sh",
+      "bytes": 14129,
+      "sha256": "5fbc2720f839f7033ee5b56af6af0e73c675cdf8a9c175c689a49bb46b8680ef"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/__init__.py",
+      "bytes": 84,
+      "sha256": "78b624623b3698f6e97d4b81dbc2998945f8a0865c186645cd99313fb9275866"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/cli/__init__.py",
+      "bytes": 97,
+      "sha256": "51f2861eabca10451ef5295271bd89e25879fa3c78db66c210959ac1bf588382"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/cli/dashboard.py",
+      "bytes": 8826,
+      "sha256": "8dbe4e0212f5f3cc5e4286f40ff54c0427b84b4192b6225d2a4db625c58ea393"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/cli/main.py",
+      "bytes": 13453,
+      "sha256": "ca2c1295cfd2c3ab886f73a481c388fa9664c2aafa49082ce2535e3aff920962"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/cli/tui.py",
+      "bytes": 8666,
+      "sha256": "acb986c983d232898bd96d615f24c3679606d2d3c5c49779c842664d09a3b247"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/codex_transport.py",
+      "bytes": 17069,
+      "sha256": "284dfff520d8a0a2917eda74fdc959661e1301bc34cc5e06cbdce598d63dfa1d"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/context/__init__.py",
+      "bytes": 40,
+      "sha256": "70daed37b66ce4c16d1c818618cd0c37dd3ebea179473d4bae50edc209ccfe2c"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/context/prompt_utils.py",
+      "bytes": 4512,
+      "sha256": "ab6d657c82ebb093af4278eb9b9c5bb8749d08a7637c85badb5fbb86e47a15f0"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/context/prompts/prompt.py",
+      "bytes": 783,
+      "sha256": "48f529d30f629beddda89001e8d181920cedbffca2698e25872242420563a377"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/__init__.py",
+      "bytes": 200,
+      "sha256": "413336a0013355b71313c953ceafb08562bd05575988ee8b5ca2e2947881929e"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/events.py",
+      "bytes": 1951,
+      "sha256": "7fd48e94706c04919bd027bdf79b3522fdc267ecd135bcc4fb36935babf2780c"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/index.html",
+      "bytes": 7335,
+      "sha256": "d641c6816c29af08ae489173ca0d1a1dc550e0a14a16f6aa2df9d036e744737b"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/interaction.py",
+      "bytes": 3489,
+      "sha256": "f9b84e5787b9cafc18eb392a4c687475441e068f4f6c249554a98ce32cfb676d"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/launcher.py",
+      "bytes": 1386,
+      "sha256": "8021dce686ffa4b01b113ca7767c0668397275d205e4a36cdd1355ae7508531c"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/planner_control.py",
+      "bytes": 5889,
+      "sha256": "a221ffc506653cec65e3b887ae17dd48a0073f84f192e70f680dc22dff897c61"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/server.py",
+      "bytes": 11025,
+      "sha256": "3e94703f4a07cef0f4161f8b9390f0b919cec43ad9309a459fd8f3b3fdd04542"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/session.py",
+      "bytes": 2537,
+      "sha256": "48ec60d2ca2eac2c25a41bd0fb6c5cea2e46fdf274fa978dfd58bb0bb2ab6b1b"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/state.py",
+      "bytes": 35255,
+      "sha256": "78f3406d79d2a8a20ba7ec2003f5dcc007b3efb1cc05b00bda9a354e94eabed7"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/static/dashboard.css",
+      "bytes": 19214,
+      "sha256": "72896e41a73e42663ae3fc50e3fcfb574f4d212d5fb1ffdf05330381a5d407e8"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/static/dashboard.js",
+      "bytes": 53335,
+      "sha256": "c9e46587955e16c7177b583ef00d0b9a5dbd3e76386cd432eda642661cc5909e"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/static/interaction.js",
+      "bytes": 17504,
+      "sha256": "e42853a69b8eac67a0438d2c3535af9886b30d9824a7579ab8f46a92f6db09a5"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/dashboard/static/markdown_table.js",
+      "bytes": 3796,
+      "sha256": "1ad3c41f098b8a75411d5990e5a18df89ec98e8d20ba3c05d5fd17a38a889941"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/envs/__init__.py",
+      "bytes": 416,
+      "sha256": "8ec498a798dbf5b8e4b900dde530b44ddb8e674fa38886ca8904a3f73ee66b06"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/envs/base.py",
+      "bytes": 2174,
+      "sha256": "b12192ca99f0e6cf6a48e0ba47165b70f50871ed35cc9f7e6082a440085d7bd1"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/envs/env_spec.py",
+      "bytes": 2021,
+      "sha256": "ba87fe3fd7494063b8130861e8e020457d7723d2723d6c28c5f9118a5bf0f335"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/envs/prompt_bundle.py",
+      "bytes": 959,
+      "sha256": "0e5d60e727b29124c815bc7a470d8291a5fcc4e9bf301fcb1636fbde90fbf354"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/parallelworld/__init__.py",
+      "bytes": 477,
+      "sha256": "a492a41280d07c4504f3bbd4461225f43f20af62218ca5df602af34c3fe7831c"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/parallelworld/client.py",
+      "bytes": 2028,
+      "sha256": "13740a10730a34365000d3fce106c3a4b9805a31a1dd062ad4ca391a6d555cc9"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/parallelworld/explorer.py",
+      "bytes": 33809,
+      "sha256": "975e8c526927e1380f8a43e412b65786947c5c0d21b079136eb46e92f8013a01"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/parallelworld/prompt_enhancer.py",
+      "bytes": 63556,
+      "sha256": "3e842a65fea911a7bbea87929d7fbb7a001d680d72fd4a76a0f74810d2860ccf"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/parallelworld/verifier.py",
+      "bytes": 14588,
+      "sha256": "7e69fe85b159e4a67c10db819a7f6ea00141277821612b52b914043a4db91d8d"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/planner/__init__.py",
+      "bytes": 77,
+      "sha256": "74ec689f8f1a8ffe6d63000f91dd3c2614478ab8390ebeb6c3dcbbf582b72813"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/planner/api_loop.py",
+      "bytes": 36996,
+      "sha256": "c44295336c0944e79b3438bbff8d7494fb9c50fdbd6c432419277c8478964180"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/planner/base.py",
+      "bytes": 7602,
+      "sha256": "c4b933ab6f0b4f2b21a20f38ec0c027c3012263e829213dc184c612db9f3e734"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/planner/claude_code.py",
+      "bytes": 36228,
+      "sha256": "e39ae7762fa396aa0d155ed1e65ec2494552454415cb7dc7afba6692a990c4e7"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/planner/codex.py",
+      "bytes": 39059,
+      "sha256": "dea8674d59f75b4f7d16039fe0ea1f6d1ff4124ecaf6d34c2770db87eaf65266"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/planner/utils/__init__.py",
+      "bytes": 55,
+      "sha256": "34d67b01cb662a1184d34727fa6c20a33ce2067e52d6b08f8104b601ba611967"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/planner/utils/http_mcp_server.py",
+      "bytes": 7989,
+      "sha256": "54d88e2824b08459e250f04a643d76cd1556f1ebf2aed1c7a9cc731a721049e2"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/tools/__init__.py",
+      "bytes": 189,
+      "sha256": "3f2259f3057a48ed6d09a8c68c076399d78e9a501b324cf33fa810497008170a"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/tools/common.py",
+      "bytes": 4699,
+      "sha256": "d93ae480cb10d912508bd13a56116259b3e28fb6b74686be5303e9d54b9756c2"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/tools/state.py",
+      "bytes": 12478,
+      "sha256": "5767648bd0d456da22abff82d95bef65102648be1a2462519fcf42bd82c3c763"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/tools/toolkit.py",
+      "bytes": 11480,
+      "sha256": "5655f0c8a5c51f82d8837882840cac17aa5b7f31a3ace82f68b135bd0b654879"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/__init__.py",
+      "bytes": 717,
+      "sha256": "8cc45cc1cd4cb45b48defd96a6ed695d2066f1eefaa9739132491865c5132487"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/config.py",
+      "bytes": 1808,
+      "sha256": "5d6682511a0ecab12d8b530c922dd23ab68c88aa4c239ebd17bc61a198c2a725"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/daemon.py",
+      "bytes": 3699,
+      "sha256": "532b15651d5bc1c8787dc8a84ebf17bac471f426637d2fb9d7882bc5ec236919"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/egl.py",
+      "bytes": 3807,
+      "sha256": "bfdc0bb4e61101e7b227c862301f68b2fdc3f685b2a5788d4b3f65030e3efcd1"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/http_rpc.py",
+      "bytes": 6350,
+      "sha256": "00a5b9aa941cfae4fbc5e3e5d768a54890d365bc8a3bc5cdcc1d63233fc110dc"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/logging.py",
+      "bytes": 4821,
+      "sha256": "77eeb295ed703763712cddb7bd8ca80988f8727e50b490d02a86215d212a80fe"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/resources.py",
+      "bytes": 1214,
+      "sha256": "bfea3ed157efae8c997fc0ed6ef60c319605d63a472546616e60e2a479b4f162"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/rpc.py",
+      "bytes": 6416,
+      "sha256": "01f772a30e902bdfb9738251ddfca7948b5104bbc06b27725e01c4d90cc8a01c"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/sam3_client.py",
+      "bytes": 4544,
+      "sha256": "eeac830879147b7d53c04853138d30078b1ac85fc730871a398a8d655bfcf585"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/socket_rpc.py",
+      "bytes": 3682,
+      "sha256": "4b5400641004fed1f7e4652d94f93eb4691078e4c29e7a9d7a87179c859472c5"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/templates.py",
+      "bytes": 2172,
+      "sha256": "4a7ff1c4f92dd683f0f421399310eea939a4f56a5271757a08027e9424b60f18"
+    },
+    {
+      "path": "parallelworld_manipulation/parallelworld_manipulation/utils/vla_client.py",
+      "bytes": 3328,
+      "sha256": "7ca061590de15ed64a203065ae17615d8b5f0e6eef450979d39bff7bda223914"
+    },
+    {
+      "path": "parallelworld_manipulation/pyproject.toml",
+      "bytes": 2950,
+      "sha256": "bad4481c4a262e893e958e31f3671e27cf645a8bf9bcaf47ca6c2d5156252020"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/MEMORY.md",
+      "bytes": 13555,
+      "sha256": "a544a43abf673403d8143760e2e2619d24ffc6bd83554a6446431308aaa64c60"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/README.md",
+      "bytes": 1717,
+      "sha256": "e2923ba3c2cf50f894007e537d5e0793a133faaced9df92a091d399677ad8418"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/can_and_small_package_basket_placement.md",
+      "bytes": 8818,
+      "sha256": "d70cd1139d18b0cbe00652d7d2fa0ce9af954e427caf7581fe562d9b5210ed00"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/closed_loop_cup_back_compartment_placement.md",
+      "bytes": 3543,
+      "sha256": "857580ec4a8cc19df8fc01795c5a6a82b77c0060d4c80bfa873f99364308f2b1"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/dual_moka_obstacle_aware_stove_placement.md",
+      "bytes": 6694,
+      "sha256": "5ffb089cdb3090be8b55a59fb907304e495c631b275a32260a20bc95455f8e0e"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/dual_object_anchor_and_relative_placement.md",
+      "bytes": 5551,
+      "sha256": "8bea4b0010f924c0797a57b257f3620021c4b6b315e3cb451d1047ed647e2846"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_bowl_eef_y_offset.md",
+      "bytes": 1510,
+      "sha256": "9ab2457e9be306427c977eeda9ee65aa35bd8f9f773ba86f1a4fafa72efc3316"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_completion_sensitive_multi_object_ordering.md",
+      "bytes": 2903,
+      "sha256": "580feb31bda777f4df0c0a8c8cf37592a9786a18992f822ae217d2e0f8a34b6d"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_cook_region_offset.md",
+      "bytes": 1606,
+      "sha256": "577e26f293825391948dda33443d5fedbaf36da3f1793e78891be25799c78b31"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_failure_forensics.md",
+      "bytes": 2883,
+      "sha256": "ea9f0c2ddc86434cbb11ceb31d6393fe523e7819806dbdd53a1df20eae9d1515"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_gripper_ctrl_is_finger_position.md",
+      "bytes": 1118,
+      "sha256": "0bc87e514a5ea83edb0d7d6130abf2a5af8d8e2aa07d57b7806aee4f10624446"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_handle_bar_grasp_orientation.md",
+      "bytes": 1624,
+      "sha256": "5aa4c5adf3be87738e5a17c52de5cb2b47114f0f5118a26d9302349f5dedec84"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_liberopro_driver_patch.md",
+      "bytes": 1386,
+      "sha256": "a75f72f46ca0935b1578ebecd85aee5258a0857e736ecc627bb36282f0dd97e4"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_long_horizon_cell_timeout_1200.md",
+      "bytes": 1569,
+      "sha256": "c81ca33b0e52e27c9fabc14d57b5c819fd2090eb0b3abe60d7aa8f62978a5332"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_max_episode_steps_libero.md",
+      "bytes": 1707,
+      "sha256": "520641d93fc6eeecd2a4abcfd5e8481e05af5b32997a65103aed11cd90a52b6b"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_move_pose_covarying_reach.md",
+      "bytes": 2719,
+      "sha256": "4b9efc95e9812c889df06b78285a239531054cf046a70a87c6ae581cece455c0"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_no_pi0_end_to_end.md",
+      "bytes": 1941,
+      "sha256": "b58eb0b764dcede3e90305615661db27e4f6e1322f4189c10912e82b0e53952f"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_osc_push_mujoco_nan.md",
+      "bytes": 1735,
+      "sha256": "62515f05267adabb5679cf6b85b90223e0ce670771d8146b8cfcb34ca52ec54d"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_pi0_chunks_egl_crash.md",
+      "bytes": 1459,
+      "sha256": "78548a2cee1c4e64d23f12d8c78e1d263bb1a6eb2ce2df85bf95390f3232da1b"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_pi0_delivery_service.md",
+      "bytes": 2846,
+      "sha256": "b29333a96f188d397e2e43e5cc3d6a50df0fab3e2ea6bf8af0f4c5ebe0bcc291"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_pi0_false_positive_lift.md",
+      "bytes": 1575,
+      "sha256": "3ad98f3b79a7a62b787b92106dd6684b594248625d785cb32e2482a9046bb177"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_pi0_pick_full_prompt.md",
+      "bytes": 1570,
+      "sha256": "2954c82e3f7e4ee4a0b523d8eb6552178b550471f6d85e4893bcd58bdaa44b44"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_pi0_pre_pos_can_hurt.md",
+      "bytes": 2369,
+      "sha256": "e6ec4504dccb2314cee874a86934f604d0ee9604df95cf4fd91d581cc9275089"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_read_image_before_decide.md",
+      "bytes": 2298,
+      "sha256": "2fb01b18e2b3d1b1554b4fc57562a5e050d41d16bf80567656c0430b32662ef2"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_region_ranges_table_frame.md",
+      "bytes": 1762,
+      "sha256": "a35d63c4e97239704a6bf52486583b716731b9b41097a59d77ca0dc8a984d71e"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_render_skip_in_env_step.md",
+      "bytes": 2327,
+      "sha256": "98a79387949e314b232af3111757adc1e4090702e8f053ad550b8cf60a2bae92"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_rotate_pitch_orientation_control.md",
+      "bytes": 1743,
+      "sha256": "35f8884c78ab783dc7dd1eab5a339ce0b72576495e41f010351f793c86cfdb45"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_rotate_wrist_yaw_sign.md",
+      "bytes": 2943,
+      "sha256": "69ca2b50b2b447fd49ecc846f57656dbef90d3348adc919bb65085124a3643c1"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_sampled_fixture_pose_relocalization.md",
+      "bytes": 1598,
+      "sha256": "1616e664d794b6681dcbf506ede62ccfae3ec1a0f193a402f56d41b9ad39c6fd"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_scripted_pick_limits.md",
+      "bytes": 2472,
+      "sha256": "e9d1dc7c3650babfe7c2d66b23aad81182d9001d65119d1cdc2c4069080dcbae"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_single_target_prompt_grounding_limits.md",
+      "bytes": 1431,
+      "sha256": "f6acd35a269b6c1170b379fe618a16cf27b22842a2d09749aa6a1242d7d0cbbd"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_staged_held_object_transport.md",
+      "bytes": 2065,
+      "sha256": "b7814f4c55c05f0af55cbe496534738fc5b25fb96a54b206ba6b619901263424"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_stove_turnoff_strict.md",
+      "bytes": 1557,
+      "sha256": "46b73dcb722fa8ea799d9476a5b0d0fda9791e91f16d2b4692fa5ff486464874"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_swap_perturbs_fixtures.md",
+      "bytes": 1799,
+      "sha256": "d69b46495c1525e3e75273a5db7744c33ec27fcee8ce28fd3bd2f043ba9f1179"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_thin_handle_drawer_closure.md",
+      "bytes": 2034,
+      "sha256": "9996acde876aa7fb8570a950e6c35dfe324d64292863dd1867f9669d01800555"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/feedback_worker_reads_memory_snapshot.md",
+      "bytes": 1454,
+      "sha256": "65a09fc36e8c394d508398b944dc23d477dddb90ce90690c08d0568c090135ed"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/fragile_box_and_rigid_can_basket_placement.md",
+      "bytes": 6301,
+      "sha256": "b2b2ee016a3e804e68d4e8d4a51852f5efc3c9d5eca633910426076b7aac3ed4"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/horizontal_bottle_drawer_insertion_and_close.md",
+      "bytes": 6128,
+      "sha256": "ba252756716f56396207116f04434f84aa1566392a1f415a9d6a443e59d6f04b"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/identity_conditioned_dual_mug_tilted_placement.md",
+      "bytes": 7627,
+      "sha256": "c7f8a097671d3a1e19607bd4026500c3e93073fff53847f34972b7deaa0edfd7"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/mixed_can_box_basket_recovery.md",
+      "bytes": 9405,
+      "sha256": "20792cb6aef8dc498df0d7d4ea4803f43103a1633da4c7d1dc89fb3c6709a86a"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/mixed_control_dual_mug_plate_assignment.md",
+      "bytes": 7835,
+      "sha256": "04e50fd4777bc6e0ff66145c69945b16c0f993eb0981228997383b0770ec7cd3"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/moka_placement_with_deferred_stove_activation.md",
+      "bytes": 6957,
+      "sha256": "8c2f0a7cb55acaec36fb6ab6ae292308112acba12aab8149bf40b5c9c729df03"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/occluded_thin_box_basket_placement.md",
+      "bytes": 6978,
+      "sha256": "1fc2256debe0ca6b1cd64c3ff7602a98fe27c8a01fbcaae25c9a08c3d2a264a8"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/ordered_dual_can_basket_placement.md",
+      "bytes": 8277,
+      "sha256": "5215e3945c9f0f4a99585769e4435129ffa33603e2ec05d43b3ce22041d60d68"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/relative_side_first_anchor_placement.md",
+      "bytes": 9104,
+      "sha256": "bcbe32fa8a541d4ecfc9194d9ab6eec308be0dec192af94749aa4273086e760e"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/single_moka_burner_contact_placement.md",
+      "bytes": 5745,
+      "sha256": "cac02a0ba707d0b7705cfb4163c15ac05e8f7c8aef037cb02b1f88679c4dbb5d"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/single_rollout_drawer_insert_and_close.md",
+      "bytes": 4084,
+      "sha256": "5cc1bff56a9ca6d54dc2ec1a4d2662901ecef1fc339bce20303d673cc41c08bc"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/stove_activation_then_handle_grasped_pan_placement.md",
+      "bytes": 6729,
+      "sha256": "62903e02ab2e2486e7b80daf6b46aad8e2b56e75f26ca2e26eb2c880a760275e"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/tall_item_first_basket_placement.md",
+      "bytes": 8677,
+      "sha256": "e3f76cfe15e325f10e59ed9f2db5d3f51bd377bb42c96cffb46993c9ce909799"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/memory/upright_book_back_compartment_placement.md",
+      "bytes": 7009,
+      "sha256": "1239d698a3c6a51aec1091eab5a904f41a5f12356b5574628be48a83faeba2e9"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/robot_references/panda_full_reference.png",
+      "bytes": 623775,
+      "sha256": "51f07a421df30077927d895ec59faaa49831cb32b838cf6f987eef20130d02bf"
+    },
+    {
+      "path": "parallelworld_manipulation/resources/libero/robot_references/panda_gripper_reference.png",
+      "bytes": 604280,
+      "sha256": "0456483e35de9b9a47ba3ea0312c9186255bd56faa73e9bf0e1aa604ca254f41"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/__init__.py",
+      "bytes": 401,
+      "sha256": "aba01dbbbf376dab1ccbddbceb1fddb79ec647c92cefb75f863f801aca0ebf5e"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/__init__.py",
+      "bytes": 24501,
+      "sha256": "efb0655fdff71fc347ab9662910b894206026691ca5b2fc5d3316762d3621aac"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/cosmos_predict2_droid_world_model_server.py",
+      "bytes": 17693,
+      "sha256": "01ca65cb50bed87209eed0f160c6b7efbf14f303334e27d734d25c8cdee4407a"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/env_client.py",
+      "bytes": 4538,
+      "sha256": "ab227c84c33fd795a1c463a1cd93f150a08565d51596ff865a79d86b42d28532"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/env_server.py",
+      "bytes": 13346,
+      "sha256": "3cb5274a10ee60dacaca2d860a691c9425170dd98974de19260348caecc8fcfd"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/gpt_image_world_model_server.py",
+      "bytes": 19915,
+      "sha256": "d2df055d5422c8ab109b2bed63ea967e4808098ca7b9a95f4b3fa742fddaa2c9"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/guides/env_calibration.md",
+      "bytes": 7607,
+      "sha256": "ebfe57a9a6a7ac6fbc134930cba3cba91951ed8ef8390d74e8d2b45350901a3f"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/guides/pro_hybrid_guide.md",
+      "bytes": 26529,
+      "sha256": "5f60403c37f16105b08d5808c6850cad549f9cac5eec25e38f84fcd9b95bd35a"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/guides/strict_hybrid_guide.md",
+      "bytes": 33914,
+      "sha256": "21072b820a6d5f4ec4c3179d85645f2caf8081bb07e385eac39444919b6b0c3c"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/minimax_h3_extra_model_paths.yaml",
+      "bytes": 359,
+      "sha256": "3f096299bd9523a16acf7b6bc34aafe3291b554540b31e7e7be4a6e9f2fe12d0"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/minimax_h3_sglang_world_model_server.py",
+      "bytes": 10364,
+      "sha256": "9aeae112cd65c4847ba42ad4ded384ef006e94a35f2508761a9e5fb16beda09d"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/minimax_h3_world_model_server.py",
+      "bytes": 21038,
+      "sha256": "36f65757599f9ac2cfd38ff2c44a9fbfe3c0b1a4a62844751e5bc4d7676eb514"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/parallelworld.py",
+      "bytes": 6577,
+      "sha256": "1412ce1af8b81be599c1161c844db3f9ee0c280976af9c31593a3794c7b7cdb7"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/prompt_bundle.py",
+      "bytes": 1411,
+      "sha256": "27a788f27b62f0f8d63662b716dc13782b297f246881fab73abb017a00c3b0d8"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/prompts/__init__.py",
+      "bytes": 39,
+      "sha256": "87cec1bd4a978e2ceaf3e5904d4817a224855378b879ba4a21d7d88ed3fad6eb"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/prompts/system.py",
+      "bytes": 31708,
+      "sha256": "de9f5b9752cdabd600bc006b8502e954f1b5e8dc719d78e698a6f17ed9617f74"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/prompts/user.py",
+      "bytes": 638,
+      "sha256": "100b4b8fa4fe61149cb393389086582227021c8ed9c6631bb5c57da6baf72eac"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/sam3_server.py",
+      "bytes": 12792,
+      "sha256": "50faa97e706550aa880cb5447af51395936f5a049242c8f7e86b0cb926c23797"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/spec.py",
+      "bytes": 1420,
+      "sha256": "e5026ab749581f5bf6507fec3c0089b71e76507d9220521feb545c2478ffcd11"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/toolkit.py",
+      "bytes": 36503,
+      "sha256": "ff741aeed68f41aacdf8b1c7617a34459794d4d3d2791b92a2310896e38bf827"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/tools.py",
+      "bytes": 68322,
+      "sha256": "9a14b54b9319ad1a5c8539576dae2dcc397dd39e12abcf86123f4a9152be6798"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/vla_server.py",
+      "bytes": 7375,
+      "sha256": "4d7f39a5a45ff7e912a11becc59b4f53dffcff4b37af79ee800189eb6a7c330b"
+    },
+    {
+      "path": "parallelworld_manipulation/robots/libero/wan_world_model_server.py",
+      "bytes": 6578,
+      "sha256": "d942fe36fccaca9732b3a564aa005c760174b5ac88b5d8367893cc4fea03b67a"
+    },
+    {
+      "path": "parallelworld_manipulation/scripts/download_cosmos_predict2_droid.py",
+      "bytes": 1695,
+      "sha256": "4c4b49a773c87c07d308a32597d8bd00e2d6228608ba57790581deb344fabf18"
+    },
+    {
+      "path": "parallelworld_manipulation/scripts/image_failure_guard.py",
+      "bytes": 1668,
+      "sha256": "4c38aa8c74178c4547758519881f50093e04667f11a71bf59cc617ea3a28cbc8"
+    },
+    {
+      "path": "parallelworld_manipulation/scripts/render_panda_references.py",
+      "bytes": 3654,
+      "sha256": "cf7bfe3b2618023aa868ada5416cbe9ad94faebefdf8dcd0be5fbfa898a3e58b"
+    },
+    {
+      "path": "parallelworld_manipulation/scripts/resolve_model_profile.py",
+      "bytes": 2538,
+      "sha256": "bb4988ad72e88dacc5c0416b78ee972466ec205462e0edbd8a952a6ee9cfaa84"
+    },
+    {
+      "path": "parallelworld_manipulation/scripts/supervise_image_batch.py",
+      "bytes": 2412,
+      "sha256": "b661efc0d5d245a5ac3d6e65dc561c853b9340aa313345acf2680e0bd260356f"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_api_dashboard_session.py",
+      "bytes": 2816,
+      "sha256": "eaa330d6c5c7ef14f29783e09cedbd8640dd42bea955e8b1a29a0bd3a7cc5cca"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_api_read_image.py",
+      "bytes": 1613,
+      "sha256": "b09fc2e8561d0624c84e420d53686744a03329d2bf21f374eff83fccd33836ed"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_cli_transcript.py",
+      "bytes": 638,
+      "sha256": "848d4e630b0dd45039d73e7a58cf8f5c82b0ffb1f3b0e93078c54e4e443c7401"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_codex_finish_timeout.py",
+      "bytes": 1583,
+      "sha256": "8a1aec28ac3c706fd69666373b299e4405b41df0555730e88a46a63e8a4df5c8"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_codex_mcp_config.py",
+      "bytes": 2162,
+      "sha256": "d05d892f514ea9f347ccf4b8ab34732ea2d934e04bd77bfaeeab588b65a38510"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_codex_transport.py",
+      "bytes": 26566,
+      "sha256": "f81c6efbd7a2f5f7a84468e6ba9965d29fc80e11c6192b13b4dc1031a73de0fd"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_cosmos_predict2_droid_world_model.py",
+      "bytes": 4783,
+      "sha256": "453e6fb056ca781c8b4a91d91a397a5b49352e88c625d02ad8c3a8d9fbb27ebf"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_gpt_image_world_model.py",
+      "bytes": 16299,
+      "sha256": "2c6a9b080f6986f4f5a5016882611e52e2c9e9efae44c0de99ebe96e01a29938"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_minimax_h3_world_model.py",
+      "bytes": 4116,
+      "sha256": "06cff3bd32fbdc7a26403abee9f6e39a5a3d3af380e961808ebc8dd7582159ff"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_parallelworld.py",
+      "bytes": 81666,
+      "sha256": "9f6a1fa6835feec4b122710898b3baef96089b65f6be07eb674c07c8e548ce26"
+    },
+    {
+      "path": "parallelworld_manipulation/tests/test_parallelworld_api_retries.py",
+      "bytes": 14444,
+      "sha256": "305e60d56e3a1fd054630e35c07e3fdf789453b70993ac60500e8e51e5684089"
+    },
+    {
+      "path": "parallelworld_understanding/README.md",
+      "bytes": 16109,
+      "sha256": "2c5c8a2d5fed4a0e38e8a144d7fe7235e53b68f58496abcd35f1d6da0fcf8228"
+    },
+    {
+      "path": "parallelworld_understanding/evaluate_baseline_active.sh",
+      "bytes": 32202,
+      "sha256": "12c8c0171ddfc2b693c23099cccaeca44a7ed942c9989d21e73dd66c22a5e2dd"
+    },
+    {
+      "path": "parallelworld_understanding/evaluate_baseline_passive.sh",
+      "bytes": 765,
+      "sha256": "444d4a988cc7dd41569c1900fe13141c3e60c80592544bd35130a57a6a21bc62"
+    },
+    {
+      "path": "parallelworld_understanding/evaluate_parallelworld.sh",
+      "bytes": 11301,
+      "sha256": "71d5ac83ab2d59b7d5443a6141e9295068d452312006f426282d0e105ee522fc"
+    },
+    {
+      "path": "parallelworld_understanding/evaluate_suite.sh",
+      "bytes": 36790,
+      "sha256": "30d9a7c13b37da8de3f2cb4613f3d566579e6223c8b7e20cd673bf47297eb16e"
+    },
+    {
+      "path": "parallelworld_understanding/hf_dataset/scripts/export_hf_questions.py",
+      "bytes": 23133,
+      "sha256": "7493ea66887a5abfc155cca725353eb4de9c49d2cc6da30944ae4d16879b7973"
+    },
+    {
+      "path": "parallelworld_understanding/hf_dataset/scripts/upload_hf_dataset.py",
+      "bytes": 3457,
+      "sha256": "8c2634e2f0d8ea0c492ac4ca7a4b7f4627208edf0a4abbb625252e7fa2d52d5f"
+    },
+    {
+      "path": "parallelworld_understanding/requirements-eval.txt",
+      "bytes": 147,
+      "sha256": "e71d079e6b57d13703855f74e854bfd58f1b2ea42a8a1e1e86d1c7180f2d511a"
+    },
+    {
+      "path": "parallelworld_understanding/scripts/check_simulator.py",
+      "bytes": 616,
+      "sha256": "ca2125920567d1032fd9c57b2ea4dd51c195e6e1d6b9ef848b1d05b30f5f6c87"
+    },
+    {
+      "path": "parallelworld_understanding/scripts/collect_improved_examples.py",
+      "bytes": 15739,
+      "sha256": "9a7f7d00a1ebf05cfedaa356f5e4855a09c2adcca5a1c5f09a70ebfe513e124c"
+    },
+    {
+      "path": "parallelworld_understanding/scripts/rebase_unobserved_image_paths.py",
+      "bytes": 1855,
+      "sha256": "f8b34c89dfeb02707e1490b76bfbaeb3ff278323e457bee5893d8f9d1e2399d6"
+    },
+    {
+      "path": "parallelworld_understanding/scripts/resume_unobserved_changes_generation.sh",
+      "bytes": 2621,
+      "sha256": "e74109a5e8517312fcdad0e6952457de363aeb2142dd81d37a1724f7c0a72078"
+    },
+    {
+      "path": "parallelworld_understanding/scripts/stage_unobserved_changes_generated.py",
+      "bytes": 6025,
+      "sha256": "469520b01f660d3c3f0846ad0553b513074cd4e58da0522ff4ba0c09ec73621f"
+    },
+    {
+      "path": "parallelworld_understanding/scripts/wait_and_evaluate_unobserved_change.sh",
+      "bytes": 2040,
+      "sha256": "ea3a0f5795dff2fcf4f1e21164c74b23c61bf91be2e433bb9321824f934e2929"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_action_sequencing/batch_action.py",
+      "bytes": 48534,
+      "sha256": "08c47ad9b3cbcb1b44a737e0c903443d546ea1a90e7bdb1d15b5bc9391e6135f"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_action_sequencing/batch_action.sh",
+      "bytes": 5669,
+      "sha256": "b53efb5b1ddd0efcfbab04ceda2a6f34f474a004e08f4ae89c91bc327c4c457b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_pour.py",
+      "bytes": 21825,
+      "sha256": "c67a5fdeaeb3c6c1ae77431b4e0a0e8ee8f01b5bae5c698eb358a6b9cf41ff64"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_pour.sh",
+      "bytes": 1952,
+      "sha256": "366a308fe1725508d974e85751004b89164ba8da99767cd1076adf92d44c6a95"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_storage.py",
+      "bytes": 55309,
+      "sha256": "0258b20614d39137802f8aad70fa6c5048464cc7e803284b4a5bff9b38999f99"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_storage.sh",
+      "bytes": 4404,
+      "sha256": "39da87b3673819143838eae8555b4912de50bbfdc46b78c11618439b7af8c4ae"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_storage_multi.py",
+      "bytes": 59789,
+      "sha256": "1569f4fa66011fe060844c1dbfb3c92f078ead5e1f348084e699b51de62520ef"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_storage_multi.sh",
+      "bytes": 4216,
+      "sha256": "21a22803eeb432dbb156f24acf8468fd27cf1414d0943ea33f0944f5eafc5277"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_water.py",
+      "bytes": 17040,
+      "sha256": "8f537fb079e7e95f49a52de5b19f82fc707afac0d7e81f737b90b27ad9aac5a1"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/batch_water.sh",
+      "bytes": 3239,
+      "sha256": "48f54822ebd10fafa2cdd895872d8b07bed4b318d2b3b72426864b9c4e6739a5"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/fillable_capacity.json",
+      "bytes": 25662,
+      "sha256": "ddb43babe09703106dc42d6d595b2cbdc10564831a5a182fb41ffb8507d53bfb"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/fillable_manifest.json",
+      "bytes": 5739,
+      "sha256": "55a4e1cc4a4e961f8c5fd100bbdee77383907296166d046a80d30740e6a8a539"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/find_fillable.py",
+      "bytes": 3078,
+      "sha256": "30ac9024ac4423f0b991eb335c81f52dc4a0f3bc7253eeda9d161645391e581b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_capacity/sort_capacity.py",
+      "bytes": 2003,
+      "sha256": "753a98fd4537bec7ea5ca55df24f97c04c9d6be88eba88be90430ba426a58f88"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_cognitive_map/batch_cognitivemap_connect.py",
+      "bytes": 77325,
+      "sha256": "a616be1d711bd22ac5d35bafa1170edae0a3e9f8f0d0480dbca67401f4433677"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_cognitive_map/batch_cognitivemap_merge.py",
+      "bytes": 52723,
+      "sha256": "f505479a2a956a2a20e66b3cd55d3a2e727abac1d0c651f2cbc6d4e814491152"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_cognitive_map/batch_cognitivemap_merge.sh",
+      "bytes": 16355,
+      "sha256": "1abb24c7855aef3a9510ab1aa95b5d8b23460e05f9c784e31582dd48b40cb926"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_cognitive_map/batch_cognitivemap_plan.py",
+      "bytes": 63785,
+      "sha256": "7e9b8c95f3d47f3ea3cb35b1d99c35980b55537cb49fdc80cf004a84c05b0f3d"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_cognitive_map/batch_cognitivemap_region.py",
+      "bytes": 85380,
+      "sha256": "2aef830830d7b4815908236ebad79037a3972f89c66ccfa370aa302fa340466b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_comparison/batch_distance.py",
+      "bytes": 49413,
+      "sha256": "62974acc2df92be323b7d642079c6c6f9f45ff7a6d830b2dd70e338abb38f6ad"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_comparison/batch_distance.sh",
+      "bytes": 4940,
+      "sha256": "6224463c28f214999c79112362ffa25c76b385d187382936c63c26849e70e1e3"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_comparison/batch_size.py",
+      "bytes": 76691,
+      "sha256": "5e6f9312db34902625d478ad9cf359a7e27cc51e95af116dc892afe40f0bb473"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_comparison/batch_size.sh",
+      "bytes": 4593,
+      "sha256": "ac97d24e1328ba1fab8f869d07efd5dff84975ba7d69138b8ddfd1c1446004cb"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_comparison/batch_size_robot.py",
+      "bytes": 66898,
+      "sha256": "53ae1181310ce74d3fb238a5c99a847ac7466dae85d58fc64df376ae3ed9007c"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_equilateral.py",
+      "bytes": 30527,
+      "sha256": "6dcf0de388f14a7a9d605b83808655d145364de74069fc93a59aebfb9b0df83b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_equilateral.sh",
+      "bytes": 5307,
+      "sha256": "bd88b9603dd23efe2cab66060e54234018f3898aa5bbf9cd56bbbf6cf54fc0ea"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_isosceles.py",
+      "bytes": 30554,
+      "sha256": "a3a16fd9ca26d2c9ff8c50c92dc7b8d421447d25511111009fdc11cdda3afffc"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_isosceles.sh",
+      "bytes": 5294,
+      "sha256": "f79bf605f5772a6aa56e2a1cc6bc81d0b86221e14b3691dd6a2bc626679b1364"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_line.py",
+      "bytes": 22476,
+      "sha256": "4ebbad2c842a2e9a1ee486cf26176d3af84ac7c91c35bdbe1332dd4a969dcaa3"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_line.sh",
+      "bytes": 4576,
+      "sha256": "39e20763d0f14b1edf8eb77c24b715787c1047749593aca18c97aa698da18edb"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_line_positive.py",
+      "bytes": 22026,
+      "sha256": "fe824b1501083a3d4e579bebc5b2d599fb0fd5c6d6eb555aff2866a6a2c309c6"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_line_positive.sh",
+      "bytes": 4594,
+      "sha256": "127e9d804aa0c5a0cc9298411aeaeac1f96412f90d05a920e55934e071d9a471"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_randomtriangle.py",
+      "bytes": 30765,
+      "sha256": "e696296147735ddbaf7e37a181480a69519708d71ee3540d7af73d08a9c6374a"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_randomtriangle.sh",
+      "bytes": 5334,
+      "sha256": "cafbf291d360f4700f68cc61bcd6a8374d6fe689881f117b64028a0abca30bcd"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_touching.py",
+      "bytes": 28658,
+      "sha256": "94335d35275528cbbdcffe5957fd42073a0ec62f51095526f3cef862d1e26bf3"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_touching.sh",
+      "bytes": 4915,
+      "sha256": "41bd4ed8c4bfb8374e5090f5e641a8cfdf0a9a1c2bc04cc992878f5c56c74c75"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_touching_false.py",
+      "bytes": 24722,
+      "sha256": "a1080e6ad6f8279d546a9629080971726ad06a5d9a860156c77cde9c5c8fbe1b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_touching_false.sh",
+      "bytes": 4927,
+      "sha256": "3e3cbc1fca8b588525df03beef4a513b0f406c9f39573032fb9101fc3ff887b0"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_touching_real.py",
+      "bytes": 26740,
+      "sha256": "8a973e6fd0058c0d7cc2e32c8da6c0e047da1c7a88615c9743681baff3c2f210"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/batch_touching_real.sh",
+      "bytes": 4925,
+      "sha256": "0b19febe934d81952553f20947d86759e2cbb5c92f9231c5fcbd151f5bb0c175"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/keys.json",
+      "bytes": 26350,
+      "sha256": "b9cf32cf1a9cb0445657ae51685815fb4beb45a06ff526623c19866bd85f759a"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_confusing_relation/metadata.json",
+      "bytes": 8644,
+      "sha256": "2fa55f80f662447c4a35e27adbeaf81358f60694bd924b985b434802984d7cbe"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_counting/batch_counting_merge.py",
+      "bytes": 229945,
+      "sha256": "ef40b0c0bf7a17563ba09f2dc25f2741e90ac3686aec1a9f692794df41a1b584"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_counting/batch_counting_merge.sh",
+      "bytes": 18881,
+      "sha256": "730f5590482f5fd93ad20c397802cee9db851e49047c40cbcc5528b95a621c44"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_deformable/batch_deformable.py",
+      "bytes": 64946,
+      "sha256": "828e553db0b11f450e7a5b99ed0d158b49765c40b164dc5bfa920e6a40fcf041"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_deformable/batch_deformable.sh",
+      "bytes": 11301,
+      "sha256": "b21bae849db68620283f085f0ad67f062cdc56459356e8a23718db662f2e0261"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/asset_manifest.json",
+      "bytes": 243074,
+      "sha256": "ae7710e14980860cb205d61f00d5dacaf814ccc3315ad3bfd0ffed4f38b3b87d"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_angle_confusion.py",
+      "bytes": 16903,
+      "sha256": "e21ec0196512b963115613aed84800cd13d1f5a52891631eef2bebd923ab527d"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_angle_confusion.sh",
+      "bytes": 3779,
+      "sha256": "e4df4d4cda9b6fa1ccad87ce82c880d5690948410286ffaf67037babcf396bfb"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_angle_confusion_multiview.py",
+      "bytes": 21093,
+      "sha256": "2002a9c1c91a1a73d67b0ef56681742c928cf412e86bdae7c9627e70bd2daf62"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_dependency.py",
+      "bytes": 36904,
+      "sha256": "31d8e614d9cb9a14082266ecd822a8e57ae98c9512e37e03485158d6f405c80b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_dependency.sh",
+      "bytes": 6848,
+      "sha256": "8de3bc1d2ea4f5c1482e50a4115ccd92d27f0d05b602a6d9a9a4afc78b0fb65d"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_occlusion.py",
+      "bytes": 31500,
+      "sha256": "98a2db895b062a98f8d0684495562743abf7cea3c2a82afc855f6bac88cbb6b4"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_occlusion.sh",
+      "bytes": 3481,
+      "sha256": "2257cb4129f34c5082536b0078ba4cb42edf74c8ec919455607e7dfe7f90185b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_occlusion_multiview.py",
+      "bytes": 36874,
+      "sha256": "28d4ccdba0c68ed4e6776769c03c72ef4a2efc80f6e0d834ace460bb75a0eb78"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_occlusion_multiview.sh",
+      "bytes": 4544,
+      "sha256": "35a438ea8edb6886b0afeae751f719667013a80882d7898752c725031623231a"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_transparent.py",
+      "bytes": 26521,
+      "sha256": "2cfc1df330535a228bd1328506ee1f35d7cba2cea08be18d2e877f5b48786a97"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_transparent.sh",
+      "bytes": 4482,
+      "sha256": "7ce3dc8238880d414deac93fc6eb2a1134af59895d37ad937ee657f57f3e68b3"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_transparent_false.py",
+      "bytes": 28961,
+      "sha256": "f5856372a2d9b92248fac78589dcaed71772c27eb8791200c6587c2bac5b22eb"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_hallucination/batch_transparent_false.sh",
+      "bytes": 4494,
+      "sha256": "d70757c869d6b0d122c826cf2dc2f3ea8a05fc9ffb900330d0f3248d02ede176"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_mirror/batch_mirror_correspondence.py",
+      "bytes": 94885,
+      "sha256": "550d144236c5355bcba8f19520fb61f7424c56150cd9b847fbb2bed40a6f3025"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_mirror/batch_mirror_distance.py",
+      "bytes": 100554,
+      "sha256": "5bc36ade651c046ec64972a12b0adbc40dae9fb3bc0111120c80da99352590cc"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_mirror/batch_mirror_merge.py",
+      "bytes": 17439,
+      "sha256": "9fa70ccb8c31ef1e5550cbd4a0d5a7602e42d154b6e939c1added3efc94e3d45"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_mirror/batch_mirror_merge.sh",
+      "bytes": 20593,
+      "sha256": "5059e95aee73812717bb7fe2f4d3df9a28e37334cbe802b0e78aa7686dd400d2"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_mirror/batch_mirror_object_reality.py",
+      "bytes": 104968,
+      "sha256": "168b0c65eb07e76449f98f0372e1a3faa9fa0b75216a7b5aa3b3cb324ae1aa2b"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_multi_agent/batch_multi_agent.py",
+      "bytes": 46807,
+      "sha256": "8d44ee3abd106903c0c44fbe1078c6849a94b2b97e2b96a72d0c11ede98b3bb7"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_multi_agent/batch_multi_agent.sh",
+      "bytes": 4533,
+      "sha256": "18d23ce2a6f23559eb17bd032e0acb38473881bd16effacb3252e982474d3a4e"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_physics/batch_slope.py",
+      "bytes": 16114,
+      "sha256": "a5d286c162684a7a23d60cf5e34f1b923d6d95c843a72e888839c4b413502d3e"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_physics/batch_slope.sh",
+      "bytes": 3407,
+      "sha256": "77cdf202014e0d4d8e162e8cbea28bd1c24a44296e2990d9db2f453d6a9ebfe8"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_physics/batch_stack.py",
+      "bytes": 36451,
+      "sha256": "92cb70eb062a2653ed886e3aaed0149d4d4d04eed9c921c14b514334ee75e633"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_physics/batch_stack.sh",
+      "bytes": 6881,
+      "sha256": "c43fc332f0f7596a70f0d0bcad396826e3fcbe18f487b7a2c1e439b0f325f9a5"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_physics/slope_objects.json",
+      "bytes": 333,
+      "sha256": "b41c3eb66b2aa5c7382fe8a5c57147fab6356812ec96a264ddc899435c8ea8de"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_unobserved_changes/batch_unobserved_changes.py",
+      "bytes": 59737,
+      "sha256": "9fa6ac4ff1a0858b277b1c48caa977b5a8a40b3015a5e4978e8018307b56d865"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_unobserved_changes/batch_unobserved_changes.sh",
+      "bytes": 13844,
+      "sha256": "378db7fa9b7d7fcdea868751e7d6674db284e0a726e2dbf055ce302b047c8b64"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_unobserved_changes/regenerate_missing_assets.py",
+      "bytes": 15639,
+      "sha256": "671a43582d138c3fbc0a5ace7887712a65bf7a783242ba697f6c88cb2be746c7"
+    },
+    {
+      "path": "parallelworld_understanding/src/dataset_generation/task_unobserved_changes/run_regenerate_missing_assets.sh",
+      "bytes": 1966,
+      "sha256": "7251f3df200eff80638321392febe2de150bc1b9eaed56339ab70f1d78022e4d"
+    },
+    {
+      "path": "parallelworld_understanding/src/main.py",
+      "bytes": 1833,
+      "sha256": "e72d61ba7b0154dd18abf7c86867da0b7f59d502d465c7e6f68c391d4caa92d9"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/answer_evidence.py",
+      "bytes": 2401,
+      "sha256": "58106937d4be0991668225ade0f7f0b99ee0421e2da985a5c44bee7004da8fe7"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/baseline_active.py",
+      "bytes": 70235,
+      "sha256": "cc07cc3a7099f4bc8ce4a93fceef9a34140dfe9cef0affbdbbebd55ee634982e"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/baseline_passive.py",
+      "bytes": 515,
+      "sha256": "49313e9fc0799dd2e6eb8261e4d26ed4ac6bd10499a9196abf59d139e159ec89"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/branching.py",
+      "bytes": 21985,
+      "sha256": "be731926947668680fd0055237b8003052d727921807b241ff30504af6c873ae"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/models/gemini.py",
+      "bytes": 5882,
+      "sha256": "24ff86e07044d0c26139ac5b09f75b957413ed75843fae15de7ff1aee32a7e60"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/models/glm.py",
+      "bytes": 4653,
+      "sha256": "0016d848fe82b1427c2cba5d8cc44b3158ec066f2bb8fb8a32ea5948d7f2f520"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/models/gpt.py",
+      "bytes": 5187,
+      "sha256": "81f184a06b51ea0aef2ae27598589911190aa671ec16acefaca0017338e089af"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/models/qwen.py",
+      "bytes": 10655,
+      "sha256": "d11d555a6337824702f9ef90ce34214eeecfc82dbb7f1123ea19bcc5175cec01"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/parallelworld.py",
+      "bytes": 91087,
+      "sha256": "54cb6c11acfbddf8ae253d8635995ac527df22a5ff6e826e67dd8c9db09a86ff"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/summarize_task_results.py",
+      "bytes": 8427,
+      "sha256": "0bd424f8f3e0cc96077bb0bdd82b2b73c033c6cad5c33291563b062aceb000af"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/action.py",
+      "bytes": 13377,
+      "sha256": "ce9e36d8207130e4d1302f0c4e6d8b0682889fdb292eccdacb23f46d6d37063e"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/angle_confusion.py",
+      "bytes": 12094,
+      "sha256": "89748a25a4bfa47fce7c293df5ce689d7aca2f9eba3fcd1d65494517492a4407"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/cognitivemap.py",
+      "bytes": 11158,
+      "sha256": "c47c90918031208b90541980a214792e2a5d5f288c3213852c302470b93e7763"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/counting.py",
+      "bytes": 21362,
+      "sha256": "765fcbb22d8c4dd51848451a6ad30fb2f312726ff74b72b889ec1bd75141399f"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/deformable.py",
+      "bytes": 28833,
+      "sha256": "d93d2b597020f4c17db3a1c7dc24548373e54d6b3cb592e74ab6ca8295853f96"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/distance.py",
+      "bytes": 11915,
+      "sha256": "02f3f77c22e24c2b3cb8961b23798cf2fff33de75effc84699fe108f55855651"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/line.py",
+      "bytes": 9208,
+      "sha256": "e7770dbdb7e78f553323e23e2ccb7f2e903e62b4642a35fd8f6b3ad098483572"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/mirror.py",
+      "bytes": 11668,
+      "sha256": "c51df5f8dfcacb04313f1a11fe17665b2d5aa7f236563ce7660b691c78b35e0a"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/multiagent.py",
+      "bytes": 12505,
+      "sha256": "ceca60f930641254246200bdc1d074ab82f546af70a7f8317d9470f5bed97e56"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/occlusion.py",
+      "bytes": 14005,
+      "sha256": "b487f1bdf87802b3c6594c1da6c396c6ff554ed0dec95ee1cac4dfa24bd2d420"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/pour.py",
+      "bytes": 30790,
+      "sha256": "6d3a7c56124e3124a5e7e22e57344d4a19f5ca6e41aa108f3e01b29aaaf5fdc9"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/size.py",
+      "bytes": 21701,
+      "sha256": "61dded767b61c79412248106cdcabbd181c303b16832d0c53045e8d905f5f1ff"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/slope.py",
+      "bytes": 19532,
+      "sha256": "cb1b7979f004154dd766a6d2e3c65d49247aef4b33db5ccb4294e076d9d4b608"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/stacking.py",
+      "bytes": 28120,
+      "sha256": "34b5544eea8a7b31150db317ec4b3d0259e936454257f791babbe96a7fcc21a5"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/storage.py",
+      "bytes": 24940,
+      "sha256": "aacbdce21553abb4e767104c712c95f961d82550b3b66430d53a740deeee4ff4"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/touching.py",
+      "bytes": 10309,
+      "sha256": "3e07a0335fcf7566de9f6cb734c5a75c447e61bea91812716ed6c3b484f57449"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/transparent.py",
+      "bytes": 19349,
+      "sha256": "55cd3892dc4e6507b7e5abfe60cb1f3f53b782eae26f60c9e740175fb1d41166"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/triangle.py",
+      "bytes": 10278,
+      "sha256": "0b91127b008c27f17172d560cbe65aea779a91961df2e659181c13be879af0ce"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/tasks/unobserved_changes.py",
+      "bytes": 19539,
+      "sha256": "691363a2dab7f06e9087e6ec0c0b698314709361163adae2ff51a0d891f7544b"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/update_baseline_results_summary.py",
+      "bytes": 9824,
+      "sha256": "215d6a38ebd6539ba55a6880fb9aa1f4761364c6f3a2798ca453eba85fee94c8"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/update_results_summary.py",
+      "bytes": 1919,
+      "sha256": "cc80099e33ee3a5283541c604a5d949c55b1adec16271fc791ac01d02cb290e7"
+    },
+    {
+      "path": "parallelworld_understanding/src/parallelworld_understanding/utils.py",
+      "bytes": 6461,
+      "sha256": "afc50abdd3e0a08eb3be1482817efc88c8c3074faf509578c8d1163b7f343e4c"
+    },
+    {
+      "path": "tools/check_package.py",
+      "bytes": 3341,
+      "sha256": "4bf53588b64b7671aed5906b7e1b6f11e9054464e805e7eebc79ed56370006a3"
+    },
+    {
+      "path": "tools/prepare_esi_data.py",
+      "bytes": 12555,
+      "sha256": "bbb6604052328c3cb63f6d581fba50d125f16bd287e68458dd6fa07da82e3c59"
+    },
+    {
+      "path": "tools/summarize_libero_pro.py",
+      "bytes": 4854,
+      "sha256": "06b869f7d20d59bc74d01a4de22f35e2318386f912ab586661c6eccfe7dd6c0d"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "model": "gpt-5.4",
+  "verifier_model": "gpt-5.5",
+  "max_steps": 15,
+  "min_steps": 0,
+  "confidence_threshold": 0.8,
+  "answer_review": true,
+  "branch_selection": "verifier_selected",
+  "paper_runners": "action,cognitivemap,counting,size,distance,transparent,occlusion,angle_confusion,slope,stacking,deformable,storage,triangle,line,touching,mirror,multiagent,unobserved_changes",
+  "answer_evidence_mode": "top1-route"
+}

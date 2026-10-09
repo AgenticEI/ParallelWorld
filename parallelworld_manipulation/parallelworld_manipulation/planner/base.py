@@ -1,0 +1,204 @@
+"""Shared protocol for high-level reasoning backends."""
+
+from __future__ import annotations
+
+import os
+import queue
+from pathlib import Path
+from typing import Protocol
+
+from parallelworld_manipulation.dashboard.events import DashboardEventSink
+from parallelworld_manipulation.dashboard.interaction import DashboardInteractionPort
+from parallelworld_manipulation.tools.toolkit import Toolkit
+from parallelworld_manipulation.utils.config import (
+    get_memory_dir,
+    get_repo_root,
+)
+
+#: MCP namespace prefix for parallelworld tools (``mcp__<server>__<tool>``).
+#: Toolkits expose plain tool names; planners add/strip this prefix.
+MCP_TOOL_PREFIX = "mcp__parallelworld_manipulation__"
+
+
+def add_mcp_prefix(name: str) -> str:
+    """Return the namespaced MCP tool name for a bare tool name."""
+    if name.startswith(MCP_TOOL_PREFIX):
+        return name
+    return f"{MCP_TOOL_PREFIX}{name}"
+
+
+def strip_mcp_prefix(name: str) -> str:
+    """Return the bare tool name, dropping the MCP namespace if present."""
+    return name.removeprefix(MCP_TOOL_PREFIX)
+
+
+class PlannerResult:
+    """Result returned by a planner invocation."""
+
+    __slots__ = ("finish_result", "messages", "stats", "error")
+
+    def __init__(
+        self,
+        *,
+        finish_result: dict | None = None,
+        messages: list[dict] | None = None,
+        stats: dict | None = None,
+        error: str | None = None,
+    ):
+        """Initialize a serializable planner result."""
+        self.finish_result = (
+            finish_result  # {"status": "success"/"failure"/"stuck", "summary": "..."}
+        )
+        self.messages = messages or []  # serialisable conversation transcript
+        self.stats = (
+            stats or {}
+        )  # {"total_input_tokens", "total_output_tokens", "turns_used", "tool_calls"}
+        self.error = error  # str | None  — set when the planner raises
+
+
+class Planner(Protocol):
+    """A planner solves a task by conversing with an LLM/VLM backend.
+
+    It is given one system prompt, one initial user message, and a set of
+    tool definitions.  It returns a ``PlannerResult`` after the task is
+    finished or the turn budget is exhausted.
+    """
+
+    def solve(
+        self,
+        *,
+        system_prompt: str,
+        user_message: str,
+        toolkit: Toolkit,
+        max_turns: int,
+        input_queue: queue.Queue[str | None] | None = None,
+        dashboard_interaction: DashboardInteractionPort | None = None,
+    ) -> PlannerResult:
+        """Run the multi-turn agent loop until completion or budget.
+
+        Args:
+            system_prompt: System-level instructions (role, rules, workflow).
+            user_message: Initial user message (task description, first steps).
+            toolkit: The full :class:`~parallelworld_manipulation.tools.toolkit.Toolkit`
+                (common + env tools). Backends derive ``tools_spec`` via
+                ``toolkit.get_tools_spec()`` and dispatch calls via
+                ``toolkit.execute_tool()``.
+            max_turns: Maximum LLM turns before giving up.
+            input_queue: Optional queue of user-typed lines for interactive steering.
+            dashboard_interaction: Optional Dashboard interaction channel.
+
+        Returns:
+            ``PlannerResult`` with finish status, conversation transcript,
+            token-usage stats, and optional error string.
+        """
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Planner construction
+# ---------------------------------------------------------------------------
+
+
+def build_planner(
+    planner_type: str,
+    *,
+    output_dir: str | Path,
+    recipe_tag: str,
+    env_name: str,
+    base_url: str | None = None,
+    model: str | None = None,
+    max_tokens: int = 8192,
+    planner_timeout_s: int | None = None,
+    claude_code_max_budget_usd: float | None = None,
+    dashboard_events: DashboardEventSink,
+    no_images: bool = False,
+):
+    """Build a planner for the given backend, resolving credentials from env vars."""
+    # Imports are deferred to avoid a circular import: api_loop / claude_code /
+    # codex all import from this module (PlannerResult).
+
+    if planner_type == "api":
+        if not model:
+            raise ValueError(
+                "the 'api' planner requires a model id; pass --model with a "
+                "provider prefix (e.g. 'anthropic:claude-opus-4-8', "
+                "'openai:gpt-5.5', 'openai-chat:glm-5.2')."
+            )
+
+        import inspect
+
+        from pydantic_ai.models import infer_model
+        from pydantic_ai.providers import infer_provider, infer_provider_class
+
+        from parallelworld_manipulation.planner.api_loop import ApiAgentLoop
+
+        def _provider_factory(provider_name: str):
+            """Build the provider for ``provider_name``.
+
+            The API key is always read from the provider's own env vars
+            (e.g. ``ANTHROPIC_API_KEY``, ``OPENAI_API_KEY``). When
+            ``base_url`` is given it overrides the provider's base URL env
+            var (e.g. ``ANTHROPIC_BASE_URL`` / ``OPENAI_BASE_URL``).
+            """
+            if not base_url:
+                return infer_provider(provider_name)
+            provider_cls = infer_provider_class(provider_name)
+            params = inspect.signature(provider_cls.__init__).parameters
+            kwargs = {}
+            if "base_url" in params:
+                kwargs["base_url"] = base_url
+            return provider_cls(**kwargs)
+
+        api_model = infer_model(model, provider_factory=_provider_factory)
+        api_timeout_s = planner_timeout_s
+        if api_timeout_s is None:
+            api_timeout_s = int(os.environ.get("CELL_TIMEOUT_S", "1200"))
+        return ApiAgentLoop(
+            model=api_model,
+            max_tokens=max_tokens,
+            dashboard_events=dashboard_events,
+            no_images=no_images,
+            timeout_s=api_timeout_s,
+        )
+    if planner_type == "claude_code":
+        from parallelworld_manipulation.planner.claude_code import ClaudeCodePlanner
+
+        cc_timeout_s = planner_timeout_s
+        if cc_timeout_s is None:
+            cc_timeout_s = int(os.environ.get("CELL_TIMEOUT_S", "1200"))
+        cc_budget = claude_code_max_budget_usd
+        if cc_budget is None:
+            cc_budget = float(os.environ.get("MAX_BUDGET_USD", "10"))
+        return ClaudeCodePlanner(
+            output_dir=output_dir,
+            repo_root=get_repo_root(),
+            model=model or "sonnet",
+            timeout_s=cc_timeout_s,
+            max_budget_usd=cc_budget,
+            extra_dirs=[str(get_memory_dir(env_name))],
+            output_path=Path(output_dir) / f"claude_{recipe_tag}.txt",
+            dashboard_events=dashboard_events,
+        )
+    if planner_type == "codex":
+        from parallelworld_manipulation.planner.codex import CodexPlanner
+
+        cx_timeout_s = planner_timeout_s
+        if cx_timeout_s == 0:
+            cx_timeout_s = None
+        elif cx_timeout_s is None:
+            cx_timeout_s = int(
+                os.environ.get(
+                    "CODEX_TIMEOUT_S",
+                    os.environ.get("CELL_TIMEOUT_S", "1200"),
+                )
+            )
+        return CodexPlanner(
+            output_dir=output_dir,
+            repo_root=get_repo_root(),
+            model=model,
+            timeout_s=cx_timeout_s,
+            extra_dirs=[str(get_memory_dir(env_name))],
+            output_path=Path(output_dir) / f"codex_{recipe_tag}.txt",
+            dashboard_events=dashboard_events,
+        )
+    raise ValueError(f"unknown planner_type: {planner_type}")

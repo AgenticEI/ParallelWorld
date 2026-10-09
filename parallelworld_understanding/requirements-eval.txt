@@ -1,0 +1,5 @@
+# Install after setting up the compatible OmniGibson / Isaac Sim environment.
+openai==2.46.0
+opencv-python==4.11.0.86
+PyYAML==6.0.3
+Pillow==11.0.0

@@ -1,0 +1,1766 @@
+from __future__ import annotations
+
+import argparse
+import copy
+import inspect
+import importlib
+import json
+import os
+import re
+import sys
+import time
+import traceback
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+os.environ.setdefault("OG_DISABLE_EMITTER_APIS", "1")
+
+import cv2
+import numpy as np
+import omnigibson as og
+import torch as th
+import yaml
+from omnigibson.macros import gm
+from omnigibson.objects.stateful_object import StatefulObject
+from omnigibson.utils.object_state_utils import sample_kinematics
+from omnigibson.utils.usd_utils import create_joint, delete_or_deactivate_prim
+from scipy.spatial.transform import Rotation
+
+gm.ENABLE_FLATCACHE = False
+gm.USE_GPU_DYNAMICS = False
+gm.ENABLE_OBJECT_STATES = True
+gm.ENABLE_TRANSITION_RULES = False
+
+if os.environ.get("OG_DISABLE_EMITTER_APIS") == "1":
+    # Steam / fire emitters are irrelevant to these tasks and some scaled
+    # dataset objects have non-orthogonal emitter transforms.
+    StatefulObject._create_emitter_apis = lambda self, emitter_type: None
+
+MOVE_STEP = 0.25
+TURN_STEP = 15.0
+SQUARE_ORI = [0.0, 0.0, 0.0, 1.0]
+SETTLE_STEPS = 60
+PLACEMENT_RETRIES = 5
+XY_IOU_TOL = 0.1
+CAMERA_ACTIONS = {
+    "move_forward",
+    "move_backward",
+    "move_left",
+    "move_right",
+    "move_up",
+    "move_down",
+    "turn_left",
+    "turn_right",
+    "turn_up",
+    "turn_down",
+}
+
+
+@dataclass
+class ActiveExploreConfig:
+    task: str
+    metadata: Path
+    question_index: int
+    json_root: Path | None
+    results_root: Path
+    step_image_root: Path
+    provider: str
+    model: str | None
+    api_key: str | None
+    max_steps: int
+    min_steps: int
+    threshold: float
+    max_new_tokens: int
+    temperature: float
+    top_p: float
+    robot: str
+    overwrite: bool
+    run_all_questions: bool
+    start_question_index: int
+    end_question_index: int | None
+    batch_range_start_index: int | None
+    batch_progress_file: Path | None
+
+
+@dataclass
+class SelectedQuestion:
+    payload: dict[str, Any]
+    source_path: Path
+    source_label: str
+
+
+def normalize_text(value: Any) -> str:
+    return "" if value is None else str(value).strip()
+
+
+def parse_args(argv: list[str] | None = None) -> ActiveExploreConfig:
+    parser = argparse.ArgumentParser(description="parallelworld_understanding shared exploration components.")
+    parser.add_argument("--task", required=True, help="Task module name under parallelworld_understanding/tasks, e.g. counting or action.")
+    parser.add_argument("--metadata", type=Path, required=True, help="Metadata JSON containing json_paths, or a single question JSON.")
+    parser.add_argument("--question-index", type=int, default=0, help="Question index for metadata json_paths.")
+    parser.add_argument("--json-root", type=Path, default=None, help="Optional root used to resolve relative json_paths.")
+    parser.add_argument("--results-root", type=Path, default=Path("outputs/understanding/results"))
+    parser.add_argument("--step-image-root", type=Path, default=Path("outputs/understanding/steps"))
+    parser.add_argument("--provider", choices=["gemini", "gpt", "qwen", "glm"], default="gpt")
+    parser.add_argument("--model", default=None)
+    parser.add_argument("--api-key", default=None)
+    parser.add_argument("--max-steps", type=int, default=30)
+    parser.add_argument("--min-steps", type=int, default=3)
+    parser.add_argument("--threshold", type=float, default=0.8)
+    parser.add_argument("--max-new-tokens", type=int, default=1024)
+    parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--top-p", type=float, default=0.9)
+    parser.add_argument("--robot", default="R1")
+    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--run-all-questions",
+        action="store_true",
+        help="Run a metadata file in one Python process while reusing the OmniGibson app.",
+    )
+    parser.add_argument("--start-question-index", type=int, default=0)
+    parser.add_argument("--end-question-index", type=int, default=None)
+    parser.add_argument("--batch-range-start-index", type=int, default=None)
+    parser.add_argument("--batch-progress-file", type=Path, default=None)
+    args = parser.parse_args(argv)
+    return ActiveExploreConfig(
+        task=args.task,
+        metadata=args.metadata.expanduser().resolve(),
+        question_index=args.question_index,
+        json_root=args.json_root.expanduser().resolve() if args.json_root else None,
+        results_root=args.results_root.expanduser().resolve(),
+        step_image_root=args.step_image_root.expanduser().resolve(),
+        provider=args.provider,
+        model=args.model,
+        api_key=args.api_key,
+        max_steps=args.max_steps,
+        min_steps=args.min_steps,
+        threshold=args.threshold,
+        max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
+        top_p=args.top_p,
+        robot=args.robot,
+        overwrite=args.overwrite,
+        run_all_questions=bool(args.run_all_questions),
+        start_question_index=max(0, int(args.start_question_index)),
+        end_question_index=None if args.end_question_index is None else max(0, int(args.end_question_index)),
+        batch_range_start_index=(
+            None if args.batch_range_start_index is None else max(0, int(args.batch_range_start_index))
+        ),
+        batch_progress_file=args.batch_progress_file.expanduser().resolve() if args.batch_progress_file else None,
+    )
+
+
+def load_task_module(task_name: str):
+    return importlib.import_module(f"tasks.{task_name}")
+
+
+def build_model_client(provider: str, api_key: str | None, model: str):
+    if provider == "gemini":
+        from models.gemini import GeminiModel
+
+        return GeminiModel(api_key=api_key, model=model)
+    if provider == "gpt":
+        from models.gpt import GPTModel
+
+        return GPTModel(api_key=api_key, model=model)
+    if provider == "qwen":
+        from models.qwen import QwenModel
+
+        return QwenModel(api_key=api_key, model=model)
+    if provider == "glm":
+        from models.glm import GLMModel
+
+        return GLMModel(api_key=api_key, model=model)
+    raise ValueError(f"Unsupported provider: {provider}")
+
+
+def resolve_json_path(raw_path: str, metadata_path: Path, json_root: Path | None) -> Path:
+    path = Path(raw_path).expanduser()
+    if path.is_absolute() and path.exists():
+        return path.resolve()
+    roots = [metadata_path.parent]
+    if json_root is not None:
+        roots.append(json_root)
+    roots.append(Path.cwd())
+    for root in roots:
+        candidate = (root / path).resolve()
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(f"Could not resolve question JSON path: {raw_path}")
+
+
+def decode_json_field(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if not stripped:
+        return None
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return value
+
+
+def is_hf_question_row(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and "metadata_json" in value
+        and "big_task" in value
+        and "small_task" in value
+        and ("question" in value or "runner_task" in value)
+    )
+
+
+def payload_from_hf_row(row: dict[str, Any]) -> dict[str, Any]:
+    metadata = decode_json_field(row.get("metadata_json"))
+    payload = dict(metadata) if isinstance(metadata, dict) else {}
+    row_answer = decode_json_field(row.get("answer"))
+    row_options = decode_json_field(row.get("options_json"))
+    row_image_paths = decode_json_field(row.get("image_paths_json"))
+
+    payload["scene"] = row.get("scene") or payload.get("scene") or "unknown_scene"
+    payload["room"] = row.get("room") or payload.get("room") or "unknown_room"
+    if row.get("question") and not payload.get("_question"):
+        payload["_question"] = row["question"]
+    if row.get("answer") not in (None, "") and "_ground_truth" not in payload:
+        payload["_ground_truth"] = row_answer
+    if row.get("answer") not in (None, "") and "answer" not in payload:
+        payload["answer"] = row_answer
+
+    payload["_hf_id"] = row.get("id")
+    payload["_hf_big_task"] = row.get("big_task")
+    payload["_hf_small_task"] = row.get("small_task")
+    payload["_hf_runner_task"] = row.get("runner_task")
+    payload["_hf_options"] = row_options if row_options is not None else []
+    payload["_hf_image_paths"] = row_image_paths if row_image_paths is not None else []
+    return payload
+
+
+def load_question_json(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if is_hf_question_row(payload):
+        return payload_from_hf_row(payload)
+    return payload
+
+
+def select_question(metadata_path: Path, question_index: int, json_root: Path | None) -> SelectedQuestion:
+    if metadata_path.suffix.lower() == ".jsonl":
+        raise ValueError("questions.jsonl is an HF export artifact, not a runner input. Use dataset/json_clean/*.json or dataset/json_clean/<Big Task>.json.")
+
+    with metadata_path.open("r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    if is_hf_question_row(metadata):
+        return SelectedQuestion(payload=payload_from_hf_row(metadata), source_path=metadata_path, source_label=str(metadata_path))
+    if isinstance(metadata, dict) and isinstance(metadata.get("json_paths"), list):
+        json_paths = metadata["json_paths"]
+    elif isinstance(metadata, list):
+        json_paths = metadata
+    else:
+        return SelectedQuestion(payload=metadata, source_path=metadata_path, source_label=str(metadata_path))
+    if not json_paths:
+        raise ValueError(f"No json_paths found in metadata: {metadata_path}")
+    if question_index < 0 or question_index >= len(json_paths):
+        raise IndexError(f"question_index={question_index} out of range for {len(json_paths)} paths")
+    selected = json_paths[question_index]
+    question_json = resolve_json_path(str(selected), metadata_path, json_root)
+    return SelectedQuestion(payload=load_question_json(question_json), source_path=question_json, source_label=str(question_json))
+
+
+def rotate_vec(vec: np.ndarray, quat_xyzw: np.ndarray) -> np.ndarray:
+    return Rotation.from_quat(quat_xyzw).apply(vec)
+
+
+def apply_camera_action(pos: np.ndarray, quat: np.ndarray, action: str) -> tuple[np.ndarray, np.ndarray]:
+    pos = pos.copy()
+    quat = quat.copy()
+    right = rotate_vec(np.array([1.0, 0.0, 0.0]), quat)
+    up = np.array([0.0, 0.0, 1.0])
+    forward = np.cross(up, right)
+
+    def flat(vec):
+        out = vec.copy()
+        out[2] = 0.0
+        norm = np.linalg.norm(out)
+        return out / norm if norm > 1e-9 else out
+
+    if action == "move_forward":
+        pos += flat(forward) * MOVE_STEP
+    elif action == "move_backward":
+        pos -= flat(forward) * MOVE_STEP
+    elif action == "move_right":
+        pos += flat(right) * MOVE_STEP
+    elif action == "move_left":
+        pos -= flat(right) * MOVE_STEP
+    elif action == "move_up":
+        pos[2] += MOVE_STEP
+    elif action == "move_down":
+        pos[2] = max(0.01, pos[2] - MOVE_STEP)
+    elif action == "turn_left":
+        quat = (Rotation.from_rotvec([0, 0, np.radians(TURN_STEP)]) * Rotation.from_quat(quat)).as_quat()
+    elif action == "turn_right":
+        quat = (Rotation.from_rotvec([0, 0, -np.radians(TURN_STEP)]) * Rotation.from_quat(quat)).as_quat()
+    elif action == "turn_up":
+        axis = rotate_vec(np.array([1.0, 0.0, 0.0]), quat)
+        quat = (Rotation.from_rotvec(axis * np.radians(TURN_STEP)) * Rotation.from_quat(quat)).as_quat()
+    elif action == "turn_down":
+        axis = rotate_vec(np.array([1.0, 0.0, 0.0]), quat)
+        quat = (Rotation.from_rotvec(axis * -np.radians(TURN_STEP)) * Rotation.from_quat(quat)).as_quat()
+    return pos, quat
+
+
+def set_camera(pos: np.ndarray, quat: np.ndarray) -> None:
+    og.sim._viewer_camera.set_position_orientation(position=pos, orientation=quat)
+    for _ in range(10):
+        og.sim.render()
+
+
+def capture_image(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    for _ in range(10):
+        og.sim.render()
+    rgb = og.sim._viewer_camera.get_obs()[0]["rgb"].cpu().numpy()[:, :, :3].astype(np.uint8)
+    cv2.imwrite(str(path), cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+    return path
+
+
+def build_env_config(
+    scene_name: str,
+    room_name: str | None,
+    robot: str,
+    objects: list[dict[str, Any]],
+    full_scene: bool = False,
+) -> dict[str, Any]:
+    cfg_file = Path(og.example_config_path) / f"{robot.lower()}_primitives.yaml"
+    if cfg_file.exists():
+        with cfg_file.open("r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+    else:
+        config = {"scene": {"type": "InteractiveTraversableScene"}, "robots": [], "objects": []}
+    config.setdefault("scene", {})
+    config["scene"]["scene_model"] = scene_name
+    config["scene"]["not_load_object_categories"] = ["ceilings", "carpet", "walls"]
+    if room_name and not full_scene:
+        config["scene"]["load_room_instances"] = [room_name]
+    config["objects"] = objects
+    return config
+
+
+def task_build_env_config(
+    task_module,
+    scene_name: str,
+    room_name: str | None,
+    robot: str,
+    objects: list[dict[str, Any]],
+    full_scene: bool = False,
+) -> dict[str, Any]:
+    hook = getattr(task_module, "build_env_config", None)
+    if hook is not None:
+        return call_with_supported_args(
+            hook,
+            scene_name,
+            room_name,
+            robot,
+            objects,
+            full_scene=full_scene,
+        )
+    return build_env_config(scene_name, room_name, robot, objects, full_scene=full_scene)
+
+
+def task_initial_settle_steps(task_module) -> int:
+    if getattr(task_module, "SKIP_INITIAL_SETTLE", False):
+        return 0
+    return int(getattr(task_module, "INITIAL_SETTLE_STEPS", 30))
+
+
+def collect_contents(
+    image_path: Path,
+    history: list[dict[str, Any]],
+    prompt: str,
+    reference_image_paths: list[Path] | None = None,
+    reference_image_path: Path | None = None,
+) -> list[Any]:
+    contents: list[Any] = []
+    if history:
+        def summarize_action_result(result: Any) -> str:
+            if not isinstance(result, dict) or not result:
+                return "{}"
+            keys = [
+                "handled",
+                "operation",
+                "action",
+                "success",
+                "error",
+                "reason",
+                "object",
+                "target",
+                "container",
+                "physical_state",
+                "attempts",
+                "current_stack",
+            ]
+            compact = {key: result[key] for key in keys if key in result}
+            return json.dumps(compact, ensure_ascii=True)
+
+        summary = "\n".join(
+            f"Step {item['step']}: action={item['action']} answer={item['answer']} "
+            f"conf={item['confidence']:.2f} result={summarize_action_result(item.get('action_result'))} "
+            f"reasoning={item['reasoning']}"
+            for item in history
+        )
+        contents.append("Action history so far:\n" + summary)
+    references = list(reference_image_paths or [])
+    if reference_image_path is not None:
+        references.append(reference_image_path)
+    for index, reference in enumerate(references, start=1):
+        if reference.exists():
+            label = "[QUESTION REFERENCE IMAGE - dataset render]" if len(references) == 1 else f"[QUESTION REFERENCE IMAGE {index}]"
+            contents.append(label)
+            contents.append(reference)
+    recent = history[-5:]
+    for item in recent:
+        past = image_path.parent / item["image"]
+        if past.exists():
+            contents.append(f"[Past view from step {item['step']}]")
+            contents.append(past)
+        for extra_index, extra_path in enumerate(item.get("extra_image_paths") or [], start=1):
+            extra = Path(extra_path)
+            if extra.exists():
+                contents.append(f"[Past extra view from step {item['step']} #{extra_index}]")
+                contents.append(extra)
+    contents.append(f"[CURRENT VIEW - step {len(history) + 1}]")
+    contents.append(image_path)
+    contents.append(prompt)
+    return contents
+
+
+def resolve_final_answer(history: list[dict[str, Any]]) -> tuple[str, int]:
+    for item in reversed(history):
+        answer = normalize_text(item.get("answer"))
+        if answer and answer.lower() not in {"not sure", "unsure", "unknown"}:
+            return answer, int(item["step"])
+    if history:
+        return normalize_text(history[-1].get("answer")) or "not sure", int(history[-1]["step"])
+    return "not sure", -1
+
+
+def output_path_for(task_module, payload: dict[str, Any], source_json: Path, results_root: Path) -> Path:
+    scene, room = task_module.scene_room(payload)
+    qid = task_module.question_id(payload, source_json)
+    return results_root / task_module.TASK_NAME / scene / room / f"{qid}_answer.json"
+
+
+def step_image_dir_for(task_module, payload: dict[str, Any], source_json: Path, step_image_root: Path) -> Path:
+    scene, room = task_module.scene_room(payload)
+    qid = task_module.question_id(payload, source_json)
+    return step_image_root / task_module.TASK_NAME / scene / room / qid
+
+
+def call_with_supported_args(func, *args, **kwargs):
+    params = inspect.signature(func).parameters
+    filtered_kwargs = {key: value for key, value in kwargs.items() if key in params}
+    return func(*args, **filtered_kwargs)
+
+
+def task_preprocess(task_module, payload: dict[str, Any], question_json: Path, config: ActiveExploreConfig) -> dict[str, Any]:
+    hook = getattr(task_module, "preprocess", None)
+    if hook is None:
+        return {}
+    state = call_with_supported_args(hook, payload, source_json=question_json, config=config)
+    return state if isinstance(state, dict) else {}
+
+
+def task_postprocess_env(task_module, env, payload: dict[str, Any], camera_info: dict[str, Any], task_state: dict[str, Any]) -> dict[str, Any]:
+    hook = getattr(task_module, "postprocess_env", None)
+    if hook is None:
+        return {}
+    result = call_with_supported_args(hook, env, payload, camera_info, task_state=task_state)
+    return result if isinstance(result, dict) else {}
+
+
+def task_reference_image_paths(task_module, payload: dict[str, Any], task_state: dict[str, Any]) -> list[Path]:
+    hook = getattr(task_module, "reference_image_paths", None)
+    if hook is not None:
+        paths = call_with_supported_args(hook, payload, task_state=task_state)
+        if paths is None:
+            return []
+        return [Path(path) for path in paths if path]
+    hook = getattr(task_module, "reference_image_path", None)
+    if hook is None:
+        return []
+    path = call_with_supported_args(hook, payload, task_state=task_state)
+    return [Path(path)] if path else []
+
+
+def task_build_system_prompt(task_module, payload: dict[str, Any], threshold: float, min_steps: int, camera_info: dict[str, Any], task_state: dict[str, Any]) -> str:
+    return call_with_supported_args(
+        task_module.build_system_prompt,
+        payload,
+        threshold,
+        min_steps,
+        camera_info,
+        task_state=task_state,
+    )
+
+
+def task_build_force_choice_prompt(task_module, payload: dict[str, Any], camera_info: dict[str, Any], task_state: dict[str, Any]) -> str:
+    return call_with_supported_args(task_module.build_force_choice_prompt, payload, camera_info, task_state=task_state)
+
+
+def task_parse_model_output(task_module, parsed: dict[str, Any], payload: dict[str, Any], task_state: dict[str, Any]) -> dict[str, Any]:
+    return call_with_supported_args(task_module.parse_model_output, parsed, payload=payload, task_state=task_state)
+
+
+def task_score(task_module, payload: dict[str, Any], final_answer: dict[str, Any], camera_info: dict[str, Any], task_state: dict[str, Any]) -> dict[str, Any]:
+    return call_with_supported_args(task_module.score, payload, final_answer, camera_info=camera_info, task_state=task_state)
+
+
+def force_final_choice(
+    task_module,
+    model_client,
+    payload: dict[str, Any],
+    camera_info: dict[str, Any],
+    image_path: Path,
+    history: list[dict[str, Any]],
+    config: ActiveExploreConfig,
+    task_state: dict[str, Any],
+    reference_image_paths: list[Path] | None = None,
+) -> dict[str, Any]:
+    prompt = task_build_force_choice_prompt(task_module, payload, camera_info, task_state)
+    parsed, raw_text, _ = model_client.generate_json(
+        contents=collect_contents(image_path, history, prompt, reference_image_paths=reference_image_paths),
+        system_instruction="Return exactly one valid JSON object and nothing else.",
+        response_schema=None,
+        max_output_tokens=max(256, min(config.max_new_tokens, 512)),
+        temperature=0.0,
+        top_p=1.0,
+        fallback={"answer": "not sure", "confidence": 0.0, "reasoning": "forced choice parse fallback"},
+    )
+    parsed = task_parse_model_output(task_module, parsed, payload, task_state)
+    return {
+        "answer": parsed.get("answer", "not sure"),
+        "confidence": float(parsed.get("confidence", 0.0)),
+        "reasoning": normalize_text(parsed.get("reasoning")) or "forced choice fallback",
+        "raw_output": raw_text,
+    }
+
+
+def task_post_action_query(
+    task_module,
+    model_client,
+    payload: dict[str, Any],
+    camera_info: dict[str, Any],
+    image_path: Path,
+    history: list[dict[str, Any]],
+    action_result: dict[str, Any],
+    config: ActiveExploreConfig,
+    task_state: dict[str, Any],
+    reference_image_paths: list[Path] | None = None,
+) -> dict[str, Any]:
+    hook = getattr(task_module, "post_action_query", None)
+    if hook is None:
+        return {}
+    result = call_with_supported_args(
+        hook,
+        model_client,
+        payload,
+        camera_info,
+        image_path,
+        history,
+        action_result,
+        config=config,
+        task_state=task_state,
+        reference_image_paths=reference_image_paths,
+    )
+    return result if isinstance(result, dict) else {}
+
+
+def task_should_stop(task_module, parsed: dict[str, Any], history: list[dict[str, Any]], step: int, config: ActiveExploreConfig) -> tuple[bool, str]:
+    hook = getattr(task_module, "should_stop", None)
+    if hook is not None:
+        return hook(parsed=parsed, history=history, step=step, max_steps=config.max_steps, min_steps=config.min_steps, threshold=config.threshold)
+
+    confidence = float(parsed.get("confidence", 0.0))
+    action = normalize_text(parsed.get("action"))
+    if confidence >= config.threshold and step >= config.min_steps:
+        return True, "confidence_threshold"
+    if action == "stop":
+        return True, "model_stop"
+    if step == config.max_steps:
+        return True, "max_steps"
+    return False, ""
+
+
+def task_resolve_final_answer(task_module, history: list[dict[str, Any]]) -> tuple[str, int]:
+    hook = getattr(task_module, "resolve_final_answer", None)
+    if hook is not None:
+        return hook(history)
+    return resolve_final_answer(history)
+
+
+def task_needs_force_final_choice(task_module, answer: str, stop_reason: str) -> bool:
+    hook = getattr(task_module, "needs_force_final_choice", None)
+    if hook is not None:
+        return bool(hook(answer=answer, stop_reason=stop_reason))
+    return normalize_text(answer).lower() in {"not sure", "unsure", "unknown", ""}
+
+
+def step_env(env, n: int = 10) -> None:
+    idle = th.zeros(env.robots[0].action_dim, dtype=th.float32) if env.robots else []
+    for _ in range(int(n)):
+        env.step(idle)
+
+
+def step_sim(n: int = 10) -> None:
+    for _ in range(int(n)):
+        og.sim.step()
+
+
+def _as_numpy(value) -> np.ndarray:
+    if hasattr(value, "detach") and hasattr(value, "cpu"):
+        return value.detach().cpu().numpy()
+    if hasattr(value, "cpu"):
+        return value.cpu().numpy()
+    return np.asarray(value)
+
+
+def keyed_list_to_map(items: object) -> dict[str, Any]:
+    if isinstance(items, dict):
+        return {normalize_text(key): value for key, value in items.items() if normalize_text(key)}
+    output = {}
+    if isinstance(items, list):
+        for item in items:
+            if isinstance(item, dict) and normalize_text(item.get("_key")):
+                output[normalize_text(item["_key"])] = item
+    return output
+
+
+def object_pose(obj) -> tuple[np.ndarray, np.ndarray, bool]:
+    pos, quat = obj.get_position_orientation()
+    visual_only = bool(getattr(obj, "visual_only", False))
+    return _as_numpy(pos).copy(), _as_numpy(quat).copy(), visual_only
+
+
+def set_visual_only(obj, visual_only: bool) -> bool:
+    target = bool(visual_only)
+    if bool(getattr(obj, "visual_only", False)) == target:
+        return False
+    obj.visual_only = target
+    return True
+
+
+def set_object_pose(obj, pos, quat, visual_only: bool | None = None) -> None:
+    position = _as_numpy(pos).astype(float, copy=True).reshape(-1)
+    orientation = _as_numpy(quat).astype(float, copy=True).reshape(-1)
+    if position.size != 3 or orientation.size != 4:
+        raise ValueError(f"Invalid pose shape for {getattr(obj, 'name', 'object')}: {position.shape}, {orientation.shape}")
+    if not np.all(np.isfinite(position)) or not np.all(np.isfinite(orientation)):
+        raise ValueError(f"Non-finite pose for {getattr(obj, 'name', 'object')}")
+    orientation_norm = float(np.linalg.norm(orientation))
+    if orientation_norm < 1e-8:
+        raise ValueError(f"Invalid zero quaternion for {getattr(obj, 'name', 'object')}")
+    orientation /= orientation_norm
+
+    target_visual_only = None if visual_only is None else bool(visual_only)
+    current_visual_only = bool(getattr(obj, "visual_only", False))
+    if target_visual_only is True and not current_visual_only:
+        set_visual_only(obj, True)
+    obj.set_position_orientation(
+        position=th.tensor(position, dtype=th.float32),
+        orientation=th.tensor(orientation, dtype=th.float32),
+    )
+    if target_visual_only is False and current_visual_only:
+        set_visual_only(obj, False)
+    obj.keep_still()
+
+
+def get_aabb(obj) -> tuple[np.ndarray, np.ndarray]:
+    bmin, bmax = obj.aabb
+    return _as_numpy(bmin).copy(), _as_numpy(bmax).copy()
+
+
+def xy_iou(bmin_a: np.ndarray, bmax_a: np.ndarray, bmin_b: np.ndarray, bmax_b: np.ndarray) -> float:
+    ix_min = max(float(bmin_a[0]), float(bmin_b[0]))
+    ix_max = min(float(bmax_a[0]), float(bmax_b[0]))
+    iy_min = max(float(bmin_a[1]), float(bmin_b[1]))
+    iy_max = min(float(bmax_a[1]), float(bmax_b[1]))
+    inter = max(0.0, ix_max - ix_min) * max(0.0, iy_max - iy_min)
+    area_a = max(0.0, float(bmax_a[0] - bmin_a[0])) * max(0.0, float(bmax_a[1] - bmin_a[1]))
+    area_b = max(0.0, float(bmax_b[0] - bmin_b[0])) * max(0.0, float(bmax_b[1] - bmin_b[1]))
+    union = area_a + area_b - inter
+    return inter / union if union > 1e-8 else 0.0
+
+
+def object_is_on_top(obj, target) -> bool:
+    try:
+        obj_min, obj_max = get_aabb(obj)
+        target_min, target_max = get_aabb(target)
+    except Exception:
+        return False
+    z_ok = float(obj_min[2]) >= float(target_min[2]) and float(obj_max[2]) > float(target_max[2])
+    xy_ok = xy_iou(obj_min, obj_max, target_min, target_max) >= XY_IOU_TOL
+    return z_ok and xy_ok
+
+
+def detach_held_object(task_state: dict[str, Any]) -> None:
+    joint_path = task_state.pop("physical_action_joint_prim_path", None)
+    if joint_path:
+        try:
+            delete_or_deactivate_prim(joint_path)
+        except Exception:
+            pass
+
+
+def attach_object_to_robot(env, obj, task_state: dict[str, Any]) -> bool:
+    if not getattr(env, "robots", None):
+        return False
+    robot = env.robots[0]
+    joint_prim_path = f"{robot.eef_links[robot.default_arm].prim_path}/ag_constraint"
+    try:
+        joint = create_joint(
+            prim_path=joint_prim_path,
+            joint_type="FixedJoint",
+            body0=robot.eef_links[robot.default_arm].prim_path,
+            body1=obj.root_link.prim_path,
+            enabled=True,
+            exclude_from_articulation=True,
+        )
+    except Exception:
+        return False
+    task_state["physical_action_joint_prim_path"] = str(joint.GetPrimPath())
+    task_state["held_obj_name"] = obj.name
+    return True
+
+
+def held_pose_near_object(obj) -> tuple[np.ndarray, np.ndarray]:
+    pos, quat, _visual_only = object_pose(obj)
+    try:
+        bmin, bmax = get_aabb(obj)
+        object_height = max(0.0, float(bmax[2] - bmin[2]))
+    except Exception:
+        object_height = 0.2
+    held_pos = pos.copy()
+    held_pos[2] += max(0.35, object_height + 0.15)
+    return held_pos, quat
+
+
+def pick_up_object(env, obj, task_state: dict[str, Any]) -> tuple[bool, str | None]:
+    if obj is None:
+        return False, "unknown_object"
+    if not getattr(env, "robots", None):
+        return False, "missing_robot"
+    held_name = normalize_text(task_state.get("held_obj_name"))
+    if held_name == obj.name:
+        return True, None
+    if held_name and held_name != obj.name:
+        held_obj = env.scene.object_registry("name", held_name) if getattr(env, "scene", None) else None
+        held_pose_info = task_state.get("held_obj_pose_before_pickup")
+        detach_held_object(task_state)
+        if held_obj is not None and isinstance(held_pose_info, dict) and held_pose_info.get("object") == held_name:
+            held_pose = held_pose_info.get("pose")
+            if held_pose:
+                set_object_pose(held_obj, held_pose[0], held_pose[1], held_pose[2])
+        task_state.pop("held_obj_name", None)
+        task_state.pop("held_obj_pose_before_pickup", None)
+        task_state.pop("held_obj_pose", None)
+    original_pose = object_pose(obj)
+    held_pos, held_quat = held_pose_near_object(obj)
+    task_state["held_obj_pose_before_pickup"] = {
+        "object": obj.name,
+        "pose": original_pose,
+    }
+    task_state["held_obj_pose"] = {
+        "object": obj.name,
+        "position": held_pos,
+        "orientation": held_quat,
+    }
+    try:
+        set_object_pose(obj, held_pos, held_quat, True)
+        step_sim(1)
+        task_state["held_obj_name"] = obj.name
+        step_sim(5)
+    except Exception as exc:
+        set_object_pose(obj, original_pose[0], original_pose[1], original_pose[2])
+        task_state.pop("held_obj_name", None)
+        task_state.pop("held_obj_pose_before_pickup", None)
+        task_state.pop("held_obj_pose", None)
+        return False, f"{type(exc).__name__}: {exc}"
+    return True, None
+
+
+def place_on_top(obj, target, env) -> bool:
+    original_pose = object_pose(obj)
+    set_visual_only(obj, False)
+    square_ori = th.tensor(SQUARE_ORI, dtype=th.float32)
+    for _attempt in range(PLACEMENT_RETRIES):
+        try:
+            ok = sample_kinematics("onTop", obj, target, use_last_ditch_effort=True, use_trav_map=False)
+            if ok:
+                pos, _ = obj.get_position_orientation()
+                obj.set_position_orientation(position=pos, orientation=square_ori)
+                obj.keep_still()
+                step_sim(SETTLE_STEPS)
+                if object_is_on_top(obj, target):
+                    return True
+        except Exception:
+            pass
+    set_object_pose(obj, original_pose[0], original_pose[1], original_pose[2])
+    step_sim(10)
+    return False
+
+
+def reset_object_to_pose(obj, pose: dict[str, Any], env) -> bool:
+    if not pose or "position" not in pose:
+        return False
+    obj.set_position_orientation(
+        position=th.tensor(pose["position"], dtype=th.float32),
+        orientation=th.tensor(SQUARE_ORI, dtype=th.float32),
+    )
+    obj.keep_still()
+    step_env(env, 20)
+    return True
+
+
+def object_display_names(task_module, payload: dict[str, Any], camera_info: dict[str, Any]) -> dict[str, str]:
+    provider = getattr(task_module, "object_display_names", None)
+    if provider is not None:
+        return dict(provider(payload, camera_info))
+    output = {}
+    for spec in task_module.build_env_objects(payload):
+        name = normalize_text(spec.get("name"))
+        category = normalize_text(spec.get("category")).replace("_", " ")
+        if name:
+            output[name] = category or name
+    return output
+
+
+def resolve_scene_object_name(task_module, text: str, payload: dict[str, Any], camera_info: dict[str, Any]) -> str | None:
+    text = normalize_text(text).lower()
+    display = object_display_names(task_module, payload, camera_info)
+    for object_name, display_name in sorted(display.items(), key=lambda item: -len(item[1])):
+        lowered_display = display_name.lower()
+        if lowered_display in text or text in lowered_display or object_name.lower() in text:
+            return object_name
+    for object_name, display_name in display.items():
+        if any(word in text for word in display_name.lower().split() if len(word) > 3):
+            return object_name
+    return None
+
+
+def execute_physical_action(
+    task_module,
+    env,
+    payload: dict[str, Any],
+    camera_info: dict[str, Any],
+    action: str,
+    task_state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    scene = env.scene
+    action_lower = action.lower().strip()
+    task_state = task_state if task_state is not None else {}
+    initial_poses = keyed_list_to_map(payload.get("initial_poses"))
+
+    if action_lower.startswith("pick up "):
+        obj_name = resolve_scene_object_name(task_module, action_lower[len("pick up "):], payload, camera_info)
+        obj = scene.object_registry("name", obj_name) if obj_name else None
+        success, error = pick_up_object(env, obj, task_state)
+        result = {"handled": True, "operation": "pick_up", "object": obj_name, "success": success}
+        if error:
+            result["error"] = error
+        return result
+
+    if "place" in action_lower and "on top of" in action_lower:
+        left, right = action_lower.split("on top of", 1)
+        obj_name = resolve_scene_object_name(task_module, left.replace("place", "").strip(), payload, camera_info)
+        target_name = resolve_scene_object_name(task_module, right.strip(), payload, camera_info)
+        obj = scene.object_registry("name", obj_name) if obj_name else None
+        target = scene.object_registry("name", target_name) if target_name else None
+        was_held = bool(task_state.get("held_obj_name") == obj_name)
+        if was_held:
+            detach_held_object(task_state)
+        success = bool(obj is not None and target is not None and place_on_top(obj, target, env))
+        if success:
+            task_state["held_obj_name"] = None
+            task_state.pop("held_obj_pose_before_pickup", None)
+            task_state.pop("held_obj_pose", None)
+        elif was_held and obj is not None:
+            held_pose = task_state.get("held_obj_pose") or {}
+            held_pos = held_pose.get("position")
+            held_quat = held_pose.get("orientation")
+            if held_pose.get("object") == obj_name and held_pos is not None and held_quat is not None:
+                set_object_pose(obj, held_pos, held_quat, True)
+            else:
+                set_visual_only(obj, True)
+            step_sim(5)
+        return {
+            "handled": True,
+            "operation": "place_on_top",
+            "object": obj_name,
+            "target": target_name,
+            "success": success,
+            "held_object": task_state.get("held_obj_name"),
+        }
+
+    if action_lower.startswith("put back "):
+        obj_name = resolve_scene_object_name(task_module, action_lower[len("put back "):], payload, camera_info)
+        obj = scene.object_registry("name", obj_name) if obj_name else None
+        if task_state.get("held_obj_name") == obj_name:
+            detach_held_object(task_state)
+        success = bool(obj is not None and reset_object_to_pose(obj, initial_poses.get(obj_name), env))
+        if success:
+            task_state["held_obj_name"] = None
+            task_state.pop("held_obj_pose_before_pickup", None)
+            task_state.pop("held_obj_pose", None)
+        return {"handled": True, "operation": "put_back", "object": obj_name, "success": success}
+
+    return {"handled": False}
+
+
+def execute_action(
+    task_module,
+    env,
+    payload: dict[str, Any],
+    camera_info: dict[str, Any],
+    pos: np.ndarray,
+    quat: np.ndarray,
+    action: str,
+    task_state: dict[str, Any] | None = None,
+    step: int | None = None,
+    step_image_dir: Path | None = None,
+):
+    runtime_state = task_state if task_state is not None else {}
+    task_action = getattr(task_module, "execute_task_action", None)
+    if task_action is not None:
+        result = call_with_supported_args(
+            task_action,
+            env,
+            payload,
+            camera_info,
+            action,
+            pos=pos,
+            quat=quat,
+            task_state=runtime_state,
+            step=step,
+            step_image_dir=step_image_dir,
+        )
+        if isinstance(result, dict) and result.get("handled"):
+            next_pos = np.array(result.get("position", pos), dtype=float)
+            next_quat = np.array(result.get("quaternion_xyzw", quat), dtype=float)
+            return next_pos, next_quat, result
+    if action in CAMERA_ACTIONS:
+        next_pos, next_quat = apply_camera_action(pos, quat, action)
+        return next_pos, next_quat, {"handled": True, "operation": "camera", "action": action}
+    info = execute_physical_action(task_module, env, payload, camera_info, action, task_state=runtime_state)
+    if info.get("handled"):
+        return pos, quat, info
+    return pos, quat, {"handled": False, "operation": "noop", "action": action}
+
+
+def task_capture_image(
+    task_module,
+    env,
+    payload: dict[str, Any],
+    camera_info: dict[str, Any],
+    pos: np.ndarray,
+    quat: np.ndarray,
+    image_path: Path,
+    task_state: dict[str, Any],
+) -> Path:
+    hook = getattr(task_module, "capture_image", None)
+    if hook is not None:
+        result = call_with_supported_args(
+            hook,
+            env,
+            payload,
+            camera_info,
+            pos,
+            quat,
+            image_path,
+            task_state=task_state,
+        )
+        return Path(result) if result is not None else image_path
+    set_camera(pos, quat)
+    return capture_image(image_path)
+
+
+def task_cleanup_runtime(task_module, env, payload: dict[str, Any], task_state: dict[str, Any]) -> bool:
+    hook = getattr(task_module, "cleanup_runtime", None)
+    if hook is None:
+        return False
+    result = call_with_supported_args(hook, env, payload, task_state=task_state)
+    return bool(result)
+
+
+def metadata_question_count(metadata_path: Path) -> int:
+    if metadata_path.suffix.lower() == ".jsonl":
+        raise ValueError(
+            "questions.jsonl is an HF export artifact, not a runner input. "
+            "Use dataset/json_clean/*.json or dataset/json_clean/<Big Task>.json."
+        )
+    with metadata_path.open("r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    if is_hf_question_row(metadata):
+        return 1
+    if isinstance(metadata, dict) and isinstance(metadata.get("json_paths"), list):
+        return len(metadata["json_paths"])
+    if isinstance(metadata, list):
+        return len(metadata)
+    return 1
+
+
+def resolve_model_name(config: ActiveExploreConfig, task_module) -> str:
+    if config.provider == "gpt":
+        default_model = "gpt-5.4"
+    elif config.provider == "qwen":
+        default_model = "qwen"
+    elif config.provider == "glm":
+        default_model = "glm-4.5v"
+    else:
+        default_model = getattr(task_module, "DEFAULT_MODEL", "gemini-2.5-flash")
+    return config.model or default_model
+
+
+def reset_og_runtime(keep_app_alive: bool) -> None:
+    sim = getattr(og, "sim", None)
+    try:
+        if sim is not None and hasattr(sim, "stop"):
+            sim.stop()
+    except Exception:
+        pass
+    try:
+        if sim is not None and hasattr(sim, "_partial_clear"):
+            sim._partial_clear()
+    except Exception:
+        pass
+    try:
+        from omnigibson.utils.python_utils import clear as clear_python_utils
+
+        clear_python_utils()
+    except Exception:
+        pass
+    try:
+        from omnigibson.utils.usd_utils import clear as clear_usd_utils
+
+        clear_usd_utils()
+    except Exception:
+        pass
+    try:
+        import omnigibson.lazy as lazy
+
+        stage = lazy.isaacsim.core.utils.stage.get_current_stage()
+        if stage is not None:
+            lazy.isaacsim.core.utils.stage.close_stage()
+        lazy.isaacsim.core.api.SimulationContext.clear_instance()
+    except Exception:
+        pass
+    try:
+        og.sim = None
+    except Exception:
+        pass
+    if not keep_app_alive:
+        try:
+            if getattr(og, "app", None) is not None:
+                og.shutdown()
+        except BaseException:
+            pass
+
+
+def cleanup_env(
+    task_module,
+    env,
+    payload: dict[str, Any],
+    task_state: dict[str, Any],
+    *,
+    shutdown_app: bool,
+) -> None:
+    try:
+        task_cleanup_runtime(task_module, env, payload, task_state)
+    except Exception:
+        pass
+    try:
+        if getattr(og, "sim", None) is not None:
+            og.sim.stop()
+    except Exception:
+        pass
+    try:
+        if env is not None and hasattr(env, "close"):
+            env.close()
+    except Exception:
+        pass
+    reset_og_runtime(keep_app_alive=not shutdown_app)
+
+
+def write_batch_progress(
+    progress_path: Path | None,
+    *,
+    status: str,
+    total_questions: int,
+    start_question_index: int,
+    end_question_index: int,
+    active_question_index: int | None,
+    next_question_index: int,
+    success_count: int,
+    fail_count: int,
+    failed_indices: list[int],
+    error: str | None = None,
+) -> None:
+    if progress_path is None:
+        return
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    progress = {
+        "status": status,
+        "total_questions": int(total_questions),
+        "start_question_index": int(start_question_index),
+        "end_question_index": int(end_question_index),
+        "range_total_questions": max(0, int(end_question_index) - int(start_question_index)),
+        "active_question_index": None if active_question_index is None else int(active_question_index),
+        "next_question_index": int(next_question_index),
+        "success_count": int(success_count),
+        "fail_count": int(fail_count),
+        "failed_indices": sorted({int(index) for index in failed_indices}),
+    }
+    if error:
+        progress["error"] = error
+    progress_path.write_text(json.dumps(progress, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def read_batch_progress(progress_path: Path | None) -> dict[str, Any]:
+    if progress_path is None or not progress_path.is_file():
+        return {}
+    try:
+        progress = json.loads(progress_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return progress if isinstance(progress, dict) else {}
+
+
+def initial_batch_counts(
+    config: ActiveExploreConfig,
+    task_module,
+    total_questions: int,
+    range_start_question_index: int,
+    start_question_index: int,
+    end_question_index: int,
+) -> tuple[int, int, list[int]]:
+    previous = read_batch_progress(config.batch_progress_file)
+    try:
+        previous_total = int(previous.get("total_questions", -1))
+        previous_range_start = int(previous.get("start_question_index", -1))
+        previous_range_end = int(previous.get("end_question_index", -1))
+        previous_next = int(previous.get("next_question_index", -1))
+        previous_success = int(previous.get("success_count", 0))
+        previous_fail = int(previous.get("fail_count", 0))
+        previous_failed_indices = sorted(
+            {
+                int(index)
+                for index in previous.get("failed_indices", [])
+                if range_start_question_index <= int(index) < start_question_index
+            }
+        )
+    except (TypeError, ValueError):
+        previous_total = previous_range_start = previous_range_end = previous_next = -1
+        previous_success = previous_fail = 0
+        previous_failed_indices = []
+    if (
+        previous_total == total_questions
+        and previous_range_start == range_start_question_index
+        and previous_range_end == end_question_index
+        and previous_next == start_question_index
+        and previous_success >= 0
+        and previous_fail >= 0
+        and previous_success + previous_fail == start_question_index - range_start_question_index
+        and len(previous_failed_indices) == previous_fail
+    ):
+        return previous_success, previous_fail, previous_failed_indices
+
+    success_count = 0
+    failed_indices: list[int] = []
+    for question_index in range(range_start_question_index, start_question_index):
+        try:
+            selected = select_question(config.metadata, question_index, config.json_root)
+            output_path = output_path_for(
+                task_module,
+                selected.payload,
+                selected.source_path,
+                config.results_root,
+            )
+        except Exception:
+            failed_indices.append(question_index)
+            continue
+        if output_path.is_file():
+            success_count += 1
+        else:
+            failed_indices.append(question_index)
+    return success_count, len(failed_indices), failed_indices
+
+
+def run_one(
+    config: ActiveExploreConfig,
+    *,
+    model_client=None,
+    shutdown_app: bool = True,
+    pipeline_variant: str = "baseline_active",
+    passive_mode: bool = False,
+) -> dict[str, Any]:
+    task_module = load_task_module(config.task)
+    selected_question = select_question(config.metadata, config.question_index, config.json_root)
+    question_json = selected_question.source_path
+    source_label = selected_question.source_label
+    payload = selected_question.payload
+
+    output_path = output_path_for(task_module, payload, question_json, config.results_root)
+    if output_path.exists() and not config.overwrite:
+        with output_path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+
+    scene_name, room_name = task_module.scene_room(payload)
+    task_state = task_preprocess(task_module, payload, question_json, config)
+    if task_state.get("skip_reason"):
+        skipped_result = {
+            "source_json": source_label,
+            "source_metadata": str(config.metadata),
+            "question_index": config.question_index,
+            "task": getattr(task_module, "TASK_NAME", config.task),
+            "scene": payload.get("scene"),
+            "room": payload.get("room"),
+            "question_id": task_module.question_id(payload, question_json),
+            "skipped": True,
+            "skip_reason": task_state["skip_reason"],
+            "correct": None,
+        }
+        if passive_mode:
+            skipped_result.update(
+                {
+                    "pipeline_variant": pipeline_variant,
+                    "observation_mode": "single_fixed_initial_pose",
+                }
+            )
+        return skipped_result
+    pos, quat, camera_info = task_module.initial_camera(payload)
+    objects = task_module.build_env_objects(payload)
+    env = None
+    history: list[dict[str, Any]] = []
+    final_answer: dict[str, Any] | None = None
+    env_postprocess: dict[str, Any] = {}
+    step_image_dir = step_image_dir_for(task_module, payload, question_json, config.step_image_root)
+    model_name = resolve_model_name(config, task_module)
+    if model_client is None:
+        model_client = build_model_client(config.provider, config.api_key, model_name)
+
+    try:
+        full_scene = bool(getattr(task_module, "FULL_SCENE", False))
+        env = og.Environment(configs=task_build_env_config(task_module, scene_name, room_name, config.robot, objects, full_scene=full_scene))
+        if not getattr(task_module, "DISABLE_VIEWER_CAMERA_MODALITIES", False):
+            for modality in ["seg_semantic", "seg_instance", "seg_instance_id"]:
+                try:
+                    og.sim._viewer_camera.add_modality(modality)
+                except Exception:
+                    pass
+        for _ in range(task_initial_settle_steps(task_module)):
+            og.sim.step()
+        env_postprocess = task_postprocess_env(task_module, env, payload, camera_info, task_state)
+        camera_override = env_postprocess.get("camera_override") if isinstance(env_postprocess, dict) else None
+        if isinstance(camera_override, dict) and camera_override.get("position") and camera_override.get("quaternion_xyzw"):
+            pos = np.array(camera_override["position"], dtype=float)
+            quat = np.array(camera_override["quaternion_xyzw"], dtype=float)
+            camera_info = {**camera_info, "postprocess_camera_override": camera_override}
+        reference_image_paths = (
+            [] if passive_mode else task_reference_image_paths(task_module, payload, task_state)
+        )
+
+        if passive_mode:
+            image_path = task_capture_image(
+                task_module,
+                env,
+                payload,
+                camera_info,
+                pos,
+                quat,
+                step_image_dir / "step_001.png",
+                task_state,
+            )
+            prompt = "\n\n".join(
+                [
+                    (
+                        "PASSIVE BASELINE SETTING:\n"
+                        "You receive exactly one fixed RGB observation captured from the initial camera pose. "
+                        "There is no camera movement, physical interaction, exploration history, or additional image. "
+                        "Answer using only this observation."
+                    ),
+                    task_build_force_choice_prompt(
+                        task_module,
+                        payload,
+                        camera_info,
+                        task_state,
+                    ),
+                ]
+            )
+            parsed, raw_text, finish_reason = model_client.generate_json(
+                contents=collect_contents(image_path, [], prompt),
+                system_instruction="Return exactly one valid JSON object and nothing else.",
+                response_schema=getattr(task_module, "FINAL_RESPONSE_SCHEMA", None),
+                max_output_tokens=config.max_new_tokens,
+                temperature=0.0,
+                top_p=1.0,
+                fallback={
+                    "answer": "not sure",
+                    "confidence": 0.0,
+                    "reasoning": "passive parse fallback",
+                },
+            )
+            parsed = task_parse_model_output(task_module, parsed, payload, task_state)
+            answer = parsed.get("answer", "not sure")
+            confidence = float(parsed.get("confidence", 0.0))
+            reasoning = normalize_text(parsed.get("reasoning")) or "no reasoning provided"
+            history.append(
+                {
+                    "step": 1,
+                    "action": None,
+                    "response_type": "final_answer",
+                    "answer": answer,
+                    "confidence": confidence,
+                    "reasoning": reasoning,
+                    "image": image_path.name,
+                    "camera": {
+                        "position": pos.tolist(),
+                        "quaternion_xyzw": quat.tolist(),
+                    },
+                    "action_result": {
+                        "handled": False,
+                        "operation": "fixed_initial_observation",
+                        "action_executed": False,
+                    },
+                    "raw_output": raw_text,
+                    "finish_reason": finish_reason,
+                }
+            )
+            final_answer = {
+                "answer": answer,
+                "answer_step": 1,
+                "confidence": confidence,
+                "reasoning": reasoning,
+                "steps": 1,
+                "stopped_by": "passive_single_observation",
+            }
+        else:
+            for step in range(1, config.max_steps + 1):
+                image_path = task_capture_image(
+                    task_module,
+                    env,
+                    payload,
+                    camera_info,
+                    pos,
+                    quat,
+                    step_image_dir / f"step_{step:03d}.png",
+                    task_state,
+                )
+                prompt = task_build_system_prompt(
+                    task_module,
+                    payload,
+                    config.threshold,
+                    config.min_steps,
+                    camera_info,
+                    task_state,
+                )
+                parsed, raw_text, finish_reason = model_client.generate_json(
+                    contents=collect_contents(
+                        image_path,
+                        history,
+                        prompt,
+                        reference_image_paths=reference_image_paths,
+                    ),
+                    system_instruction="Return exactly one valid JSON object and nothing else.",
+                    response_schema=getattr(task_module, "ACTION_RESPONSE_SCHEMA", None),
+                    max_output_tokens=config.max_new_tokens,
+                    temperature=config.temperature,
+                    top_p=config.top_p,
+                    fallback={
+                        "action": "move_forward",
+                        "answer": "not sure",
+                        "confidence": 0.0,
+                        "reasoning": "parse fallback",
+                    },
+                )
+                parsed = task_parse_model_output(task_module, parsed, payload, task_state)
+                action = parsed["action"]
+                answer = parsed["answer"]
+                confidence = float(parsed["confidence"])
+                reasoning = parsed["reasoning"]
+                pos_before = pos.copy()
+                quat_before = quat.copy()
+
+                should_stop, stop_reason = task_should_stop(
+                    task_module,
+                    parsed,
+                    history,
+                    step,
+                    config,
+                )
+
+                action_result = {"handled": False}
+                if not should_stop:
+                    pos, quat, action_result = execute_action(
+                        task_module,
+                        env,
+                        payload,
+                        camera_info,
+                        pos,
+                        quat,
+                        action,
+                        task_state=task_state,
+                        step=step,
+                        step_image_dir=step_image_dir,
+                    )
+
+                history.append({
+                    "step": step,
+                    "action": action,
+                    "answer": answer,
+                    "confidence": confidence,
+                    "reasoning": reasoning,
+                    "image": image_path.name,
+                    "camera": {"position": pos_before.tolist(), "quaternion_xyzw": quat_before.tolist()},
+                    "action_result": action_result,
+                    "extra_image_paths": action_result.get("extra_image_paths") or [],
+                    "raw_output": raw_text,
+                    "finish_reason": finish_reason,
+                })
+
+                post_action = {}
+                if not should_stop:
+                    post_action = task_post_action_query(
+                        task_module,
+                        model_client,
+                        payload,
+                        camera_info,
+                        image_path,
+                        history,
+                        action_result,
+                        config,
+                        task_state,
+                        reference_image_paths=reference_image_paths,
+                    )
+                    if post_action.get("history_update"):
+                        history[-1].update(post_action["history_update"])
+                        answer = history[-1].get("answer", answer)
+                        confidence = float(history[-1].get("confidence", confidence))
+                        reasoning = history[-1].get("reasoning", reasoning)
+                    if post_action.get("final_answer"):
+                        final_answer = post_action["final_answer"]
+                        break
+                    if post_action.get("should_stop"):
+                        should_stop = True
+                        stop_reason = normalize_text(post_action.get("stop_reason")) or "post_action_query"
+
+                if should_stop:
+                    resolved_answer, answer_step = task_resolve_final_answer(task_module, history)
+                    if task_needs_force_final_choice(task_module, resolved_answer, stop_reason):
+                        forced = force_final_choice(
+                            task_module,
+                            model_client,
+                            payload,
+                            camera_info,
+                            image_path,
+                            history,
+                            config,
+                            task_state,
+                            reference_image_paths=reference_image_paths,
+                        )
+                        resolved_answer = forced["answer"]
+                        answer_step = step
+                        confidence = forced["confidence"]
+                        reasoning = forced["reasoning"]
+                        history.append({
+                            "step": step,
+                            "action": "force_final_choice",
+                            "answer": resolved_answer,
+                            "confidence": confidence,
+                            "reasoning": reasoning,
+                            "image": image_path.name,
+                            "camera": {"position": pos.tolist(), "quaternion_xyzw": quat.tolist()},
+                            "raw_output": forced["raw_output"],
+                        })
+                        stop_reason = f"{stop_reason}_forced_choice"
+                    final_answer = {
+                        "answer": resolved_answer,
+                        "answer_step": answer_step,
+                        "confidence": confidence,
+                        "reasoning": reasoning,
+                        "steps": step,
+                        "stopped_by": stop_reason,
+                    }
+                    break
+                time.sleep(0.1)
+
+        final_answer = final_answer or {"answer": "not sure", "answer_step": -1, "confidence": 0.0, "reasoning": "no answer", "steps": len(history), "stopped_by": "empty"}
+        score = task_score(task_module, payload, final_answer, camera_info, task_state)
+        result = {
+            "source_json": source_label,
+            "source_metadata": str(config.metadata),
+            "question_index": config.question_index,
+            "task": task_module.TASK_NAME,
+            "scene": scene_name,
+            "room": room_name,
+            "question_id": task_module.question_id(payload, question_json),
+            "provider": config.provider,
+            "model": model_name,
+            "final_answer": final_answer,
+            "history": history,
+            "step_image_dir": str(step_image_dir),
+            "camera_info": camera_info,
+            "env_postprocess": env_postprocess,
+            **score,
+        }
+        if passive_mode:
+            result.update(
+                {
+                    "pipeline_variant": pipeline_variant,
+                    "observation_mode": "single_fixed_initial_pose",
+                }
+            )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_path.open("w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        return result
+    finally:
+        cleanup_env(
+            task_module,
+            env,
+            payload if "payload" in locals() else {},
+            task_state if "task_state" in locals() else {},
+            shutdown_app=shutdown_app,
+        )
+
+
+def main(
+    argv: list[str] | None = None,
+    *,
+    pipeline_variant: str = "baseline_active",
+    passive_mode: bool = False,
+    nest_variant_outputs: bool = False,
+) -> int:
+    config = parse_args(argv)
+    if nest_variant_outputs:
+        config.results_root = config.results_root / pipeline_variant
+        config.step_image_root = config.step_image_root / pipeline_variant
+    if config.run_all_questions:
+        total_questions = 0
+        range_start_question_index = config.start_question_index
+        start_question_index = config.start_question_index
+        end_question_index = config.start_question_index
+        success_count = 0
+        fail_count = 0
+        failed_indices: list[int] = []
+        task_module = None
+        try:
+            total_questions = metadata_question_count(config.metadata)
+            task_module = load_task_module(config.task)
+            model_name = resolve_model_name(config, task_module)
+            model_client = build_model_client(config.provider, config.api_key, model_name)
+            requested_start = min(config.start_question_index, total_questions)
+            range_start_question_index = min(
+                requested_start
+                if config.batch_range_start_index is None
+                else config.batch_range_start_index,
+                total_questions,
+            )
+            end_question_index = (
+                total_questions
+                if config.end_question_index is None
+                else min(max(range_start_question_index, config.end_question_index), total_questions)
+            )
+            start_question_index = min(max(range_start_question_index, requested_start), end_question_index)
+            success_count, fail_count, failed_indices = initial_batch_counts(
+                config,
+                task_module,
+                total_questions,
+                range_start_question_index,
+                start_question_index,
+                end_question_index,
+            )
+            write_batch_progress(
+                config.batch_progress_file,
+                status="running",
+                total_questions=total_questions,
+                start_question_index=range_start_question_index,
+                end_question_index=end_question_index,
+                active_question_index=None,
+                next_question_index=start_question_index,
+                success_count=success_count,
+                fail_count=fail_count,
+                failed_indices=failed_indices,
+            )
+            for question_index in range(start_question_index, end_question_index):
+                write_batch_progress(
+                    config.batch_progress_file,
+                    status="running",
+                    total_questions=total_questions,
+                    start_question_index=range_start_question_index,
+                    end_question_index=end_question_index,
+                    active_question_index=question_index,
+                    next_question_index=question_index,
+                    success_count=success_count,
+                    fail_count=fail_count,
+                    failed_indices=failed_indices,
+                )
+                item_config = copy.copy(config)
+                item_config.question_index = question_index
+                print(
+                    json.dumps(
+                        {
+                            "stage": "question_start",
+                            "question_index": question_index,
+                            "total_questions": total_questions,
+                            "pipeline_variant": pipeline_variant,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    flush=True,
+                )
+                try:
+                    result = run_one(
+                        item_config,
+                        model_client=model_client,
+                        shutdown_app=False,
+                        pipeline_variant=pipeline_variant,
+                        passive_mode=passive_mode,
+                    )
+                    success_count += 1
+                    failed_indices = [index for index in failed_indices if index != question_index]
+                    write_batch_progress(
+                        config.batch_progress_file,
+                        status="running",
+                        total_questions=total_questions,
+                        start_question_index=range_start_question_index,
+                        end_question_index=end_question_index,
+                        active_question_index=question_index,
+                        next_question_index=question_index + 1,
+                        success_count=success_count,
+                        fail_count=fail_count,
+                        failed_indices=failed_indices,
+                    )
+                    print(
+                        json.dumps(
+                            {
+                                "stage": "question_done",
+                                "question_index": question_index,
+                                "source_json": result.get("source_json"),
+                                "final_answer": result.get("final_answer"),
+                                "correct": result.get("correct"),
+                                "step_image_dir": result.get("step_image_dir"),
+                            },
+                            ensure_ascii=False,
+                        ),
+                        flush=True,
+                    )
+                except (Exception, SystemExit) as exc:
+                    fail_count += 1
+                    if question_index not in failed_indices:
+                        failed_indices.append(question_index)
+                        failed_indices.sort()
+                    write_batch_progress(
+                        config.batch_progress_file,
+                        status="running",
+                        total_questions=total_questions,
+                        start_question_index=range_start_question_index,
+                        end_question_index=end_question_index,
+                        active_question_index=question_index,
+                        next_question_index=question_index + 1,
+                        success_count=success_count,
+                        fail_count=fail_count,
+                        failed_indices=failed_indices,
+                        error=f"{type(exc).__name__}: {exc}",
+                    )
+                    print(
+                        json.dumps(
+                            {
+                                "stage": "question_failed",
+                                "question_index": question_index,
+                                "pipeline_variant": pipeline_variant,
+                                "error_type": type(exc).__name__,
+                                "error": str(exc),
+                                "traceback": traceback.format_exc(),
+                            },
+                            ensure_ascii=False,
+                        ),
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    os._exit(3)
+
+            cleanup_env(task_module, None, {}, {}, shutdown_app=True)
+            write_batch_progress(
+                config.batch_progress_file,
+                status="completed",
+                total_questions=total_questions,
+                start_question_index=range_start_question_index,
+                end_question_index=end_question_index,
+                active_question_index=None,
+                next_question_index=end_question_index,
+                success_count=success_count,
+                fail_count=fail_count,
+                failed_indices=failed_indices,
+            )
+            print(
+                json.dumps(
+                    {
+                        "stage": "batch_summary",
+                        "pipeline_variant": pipeline_variant,
+                        "model": model_name,
+                        "success": success_count,
+                        "failed": fail_count,
+                        "failed_indices": failed_indices,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+            return 0
+        except (Exception, SystemExit) as exc:
+            print(f"[fatal] {type(exc).__name__}: {exc}", file=sys.stderr)
+            print(traceback.format_exc(), file=sys.stderr)
+            write_batch_progress(
+                config.batch_progress_file,
+                status="fatal",
+                total_questions=total_questions,
+                start_question_index=range_start_question_index,
+                end_question_index=end_question_index,
+                active_question_index=None,
+                next_question_index=start_question_index,
+                success_count=success_count,
+                fail_count=fail_count,
+                failed_indices=failed_indices,
+                error=f"{type(exc).__name__}: {exc}",
+            )
+            try:
+                if task_module is not None:
+                    cleanup_env(task_module, None, {}, {}, shutdown_app=True)
+            except Exception:
+                pass
+            return 2
+
+    try:
+        result = run_one(
+            config,
+            pipeline_variant=pipeline_variant,
+            passive_mode=passive_mode,
+        )
+    except Exception as exc:
+        print(f"[fatal] {type(exc).__name__}: {exc}", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
+        return 2
+    correct = result.get("correct")
+    print(json.dumps({
+        "source_json": result.get("source_json"),
+        "skipped": result.get("skipped", False),
+        "skip_reason": result.get("skip_reason"),
+        "final_answer": result.get("final_answer"),
+        "correct": correct,
+        "step_image_dir": result.get("step_image_dir"),
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

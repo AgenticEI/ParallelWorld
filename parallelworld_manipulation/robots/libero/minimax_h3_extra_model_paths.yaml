@@ -1,0 +1,8 @@
+parallelworld_manipulation_minimax_h3:
+  # Bundled template: the server resolves PW_MINIMAX_CHECKPOINTS or repo/checkpoints/minimax-h3.
+  # For a custom ComfyUI configuration, provide --extra-model-paths-config explicitly.
+  base_path: ../../checkpoints/minimax-h3
+  diffusion_models: diffusion_models
+  text_encoders: text_encoders
+  vae: vae
+  loras: loras

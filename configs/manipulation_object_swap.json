@@ -1,0 +1,197 @@
+{
+  "suite": "libero_object_swap",
+  "default": {
+    "planner_model": "gpt-5.5",
+    "verifier_model": "openai:gpt-5.5",
+    "prompt_enhancer_model": "openai:gpt-5.5",
+    "image_model": "gpt-image-2.5"
+  },
+  "trial_overrides": {
+    "t5_s6": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t5_s7": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t6_s5": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t6_s6": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t6_s7": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t6_s9": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t7_s2": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t7_s3": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t7_s4": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t7_s5": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t7_s7": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t7_s9": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t7_s10": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s1": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s2": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s3": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s4": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s5": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s7": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s8": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s9": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t8_s10": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s1": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s2": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s3": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s4": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s5": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s7": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s8": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s9": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    },
+    "t9_s10": {
+      "planner_model": "gpt-5.5",
+      "verifier_model": "codex:gpt-5.5",
+      "prompt_enhancer_model": "codex:gpt-5.5",
+      "image_model": "gpt-image-2.5"
+    }
+  }
+}

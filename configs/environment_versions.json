@@ -1,0 +1,33 @@
+{
+  "description": "Reference software versions inspected with package metadata; this is not a complete dependency lockfile.",
+  "esi_bench": {
+    "python": "3.10.20",
+    "omnigibson": "3.7.2",
+    "isaacsim": "4.5.0.0",
+    "bddl": "3.7.0",
+    "torch": "2.6.0+cu124",
+    "numpy": "1.26.4",
+    "scipy": "1.15.3",
+    "openai": "2.46.0",
+    "opencv-python": "4.11.0.86",
+    "PyYAML": "6.0.3",
+    "Pillow": "11.0.0"
+  },
+  "libero_pro": {
+    "python": "3.11.15",
+    "torch": "2.7.1",
+    "numpy": "1.26.4",
+    "openai": "3.5.0",
+    "pydantic-ai-slim": "2.35.1",
+    "pydantic": "2.13.4",
+    "fastapi": "0.141.1",
+    "uvicorn": "0.52.4",
+    "httpx": "0.28.1",
+    "claude-agent-sdk": "0.2.145",
+    "openai-codex": "0.147.0",
+    "huggingface-hub": "0.36.2",
+    "sam3": "0.1.4",
+    "rpent-liberopro": "0.2.0",
+    "rpent-rlinf": "0.3.0"
+  }
+}
