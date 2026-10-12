@@ -1,19 +1,19 @@
 {
   "package": "parallelworld",
-  "snapshot_date": "2026-10-08",
+  "snapshot_date": "2026-10-12",
   "components": [
     "parallelworld_understanding",
     "parallelworld_manipulation"
   ],
-  "file_count_excluding_manifest": 283,
-  "bytes_excluding_manifest": 5673553,
+  "file_count_excluding_manifest": 289,
+  "bytes_excluding_manifest": 7268801,
   "validation": {
     "static_checks": {
       "python_files": 166,
       "shell_files": 38,
       "toml_files": 1,
       "json_files": 10,
-      "readme_links": 5
+      "readme_links": 8
     },
     "internal_name_audit": true,
     "cli_help": true,
@@ -47,14 +47,29 @@
       "sha256": "0b025fcce00ec9f04387bfbc8237626b74869079624d67d0c6b70d8172a23b05"
     },
     {
+      "path": ".github/workflows/package-check.yml",
+      "bytes": 613,
+      "sha256": "5aaef18d6b3742f79171731c0e9d0b64395a493fb6e2fc3b1f0f8ff47b67ac10"
+    },
+    {
       "path": ".gitignore",
       "bytes": 282,
       "sha256": "d5a3f18dd74dcee422b0649ed0cdfebcda25e4c02b20614870d6982bdd9ca492"
     },
     {
+      "path": "LICENSE",
+      "bytes": 11351,
+      "sha256": "7ac2b7958e03b3dd4b4ea8a513b0841b55dfc05b18dd34a540aac4911bf1286e"
+    },
+    {
+      "path": "NOTICE",
+      "bytes": 343,
+      "sha256": "39a53d89da781dab8ed5bbb30b3d6e29ee28a1eb4ddcb10206e5796bbe68af3c"
+    },
+    {
       "path": "README.md",
-      "bytes": 3155,
-      "sha256": "de034d8fdd5f46e3781dd2febdff7bef2d6088c8448a791ba9af135d874f030e"
+      "bytes": 5945,
+      "sha256": "15f553e30e1f5f89c0cd77cc212288f7dd181c29786ba48f1bda765e68006739"
     },
     {
       "path": "configs/environment_versions.json",
@@ -72,6 +87,16 @@
       "sha256": "b87a9f588f37bd5eec689f0ce308f530ed39f21d552d59fb966047c9770c9778"
     },
     {
+      "path": "docs/assets/pipeline.png",
+      "bytes": 935527,
+      "sha256": "d719f42797ad2d89a838377a67743b079fca4c8034ee960e54a5473dd0ec34a7"
+    },
+    {
+      "path": "docs/assets/teaser.png",
+      "bytes": 644082,
+      "sha256": "f3648dd0c7f971284ca90b33139137018f858cb18311091f7e76b9ab28655ad6"
+    },
+    {
       "path": "parallelworld_manipulation/.gitignore",
       "bytes": 350,
       "sha256": "be8fbe55f946b6b46f7b4d59dbef0c3b4d9cf741a06a4389764501dede47688b"
@@ -84,7 +109,7 @@
     {
       "path": "parallelworld_manipulation/README.md",
       "bytes": 10241,
-      "sha256": "940326b674c88072668adc7c12316dcfe2c88c3e497e7e9bdc15ab20c03a7eaa"
+      "sha256": "34d6b08f01657738f28c40977e6a07d177e07aa65a317381c3e5108af97e087f"
     },
     {
       "path": "parallelworld_manipulation/evaluate_manipulation.sh",
@@ -368,8 +393,8 @@
     },
     {
       "path": "parallelworld_manipulation/pyproject.toml",
-      "bytes": 2950,
-      "sha256": "bad4481c4a262e893e958e31f3671e27cf645a8bf9bcaf47ca6c2d5156252020"
+      "bytes": 3362,
+      "sha256": "f087fc74c5cf86d311514d29f6cd53aeb7515a7b5fb9a02c0b01e8f178b7e474"
     },
     {
       "path": "parallelworld_manipulation/resources/libero/memory/MEMORY.md",
@@ -828,8 +853,8 @@
     },
     {
       "path": "parallelworld_understanding/README.md",
-      "bytes": 16109,
-      "sha256": "2c5c8a2d5fed4a0e38e8a144d7fe7235e53b68f58496abcd35f1d6da0fcf8228"
+      "bytes": 16134,
+      "sha256": "1f44f49b12ca9d6a91bb3f57ab3e81a2dce4468be0f24d6faadb4a6fd5bdb597"
     },
     {
       "path": "parallelworld_understanding/evaluate_baseline_active.sh",
@@ -1442,9 +1467,14 @@
       "sha256": "afc50abdd3e0a08eb3be1482817efc88c8c3074faf509578c8d1163b7f343e4c"
     },
     {
+      "path": "requirements-dev.txt",
+      "bytes": 36,
+      "sha256": "ac0f5c33b9b22c53922d6f57db585d3561644a5c8228d27e57c69a36babc2f9d"
+    },
+    {
       "path": "tools/check_package.py",
-      "bytes": 3341,
-      "sha256": "4bf53588b64b7671aed5906b7e1b6f11e9054464e805e7eebc79ed56370006a3"
+      "bytes": 3410,
+      "sha256": "af03c405c837ec2c4380b18500b6e936a6716b7a80d59fea32f23052981a56d8"
     },
     {
       "path": "tools/prepare_esi_data.py",

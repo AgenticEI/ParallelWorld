@@ -1,6 +1,6 @@
-# parallelworld_understanding
+# ParallelWorld Understanding
 
-This directory implements adaptive exploration and verification for ESI-Bench. At each exploration step, the agent proposes candidate actions, evaluates their outcomes, and selects routes to retain. It then answers the benchmark question using the accumulated visual evidence. The repository also includes the original evaluation baselines and task-specific dataset generation tools.
+This directory implements ParallelWorld's adaptive exploration and verification pipeline for ESI-Bench. At each exploration step, the agent proposes candidate actions, evaluates their outcomes, and selects routes to retain. It then answers the benchmark question using the accumulated visual evidence. The repository also includes the original evaluation baselines and task-specific dataset generation tools.
 
 ## Requirements
 
@@ -169,7 +169,7 @@ The baseline runners use the same question files and simulator assets. `src/main
 
 | Method | Purpose |
 |---|---|
-| `parallelworld` | parallelworld adaptive exploration; default entrypoint |
+| `parallelworld` | ParallelWorld adaptive exploration; default entrypoint |
 | `baseline_active` | Original active exploration baseline |
 | `baseline_passive` | Passive observation baseline |
 | `branching` | Branch exploration implementation |
@@ -204,7 +204,7 @@ python src/main.py \
 
 The `--task` must match the selected question's runner. Use a category's prepared subcategory metadata file when its summary contains questions for several runners. The baseline model and input paths can be configured through `PROVIDER`, `MODEL`, `METADATA`, and `JSON_ROOT`.
 
-Both baseline launchers update a comparison table with Active, Passive, and parallelworld columns through `src/parallelworld_understanding/update_baseline_results_summary.py`. The current baseline's metrics populate its corresponding column; the other metric directories can be set through `ACTIVE_METRICS_ROOT`, `PASSIVE_METRICS_ROOT`, and `PARALLELWORLD_METRICS_ROOT`. Use the same `RESULTS_SUMMARY_PATH` for both launchers to maintain a shared comparison table. Adaptive evaluation writes its own table through `src/parallelworld_understanding/update_results_summary.py`.
+Both baseline launchers update a comparison table with Active, Passive, and ParallelWorld columns through `src/parallelworld_understanding/update_baseline_results_summary.py`. The current baseline's metrics populate its corresponding column; the other metric directories can be set through `ACTIVE_METRICS_ROOT`, `PASSIVE_METRICS_ROOT`, and `PARALLELWORLD_METRICS_ROOT`. Use the same `RESULTS_SUMMARY_PATH` for both launchers to maintain a shared comparison table. Adaptive evaluation writes its own table through `src/parallelworld_understanding/update_results_summary.py`.
 
 To generate the comparison table from existing metrics:
 

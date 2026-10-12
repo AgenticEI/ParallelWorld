@@ -4,11 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "parallelworld-manipulation"
-version = "0.0.0"
-authors = [{ name = "RPent Contributors" }]
-description = "Embodied agent framework for coordinating high-level reasoning and robot skills"
+version = "0.1.0"
+authors = [
+    { name = "Min Chen" },
+    { name = "Shengjun Zhang" },
+    { name = "Yuxin Li" },
+    { name = "Zhang Zhang" },
+    { name = "Xin Fei" },
+    { name = "Chong Xia" },
+    { name = "Yueqi Duan" },
+]
+description = "Prospective world imagination for agentic robotic manipulation"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10,<3.13"
+license = "Apache-2.0"
 keywords = [
     "embodied-intelligence",
     "large-language-models",
@@ -22,8 +31,14 @@ classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: GPU :: NVIDIA CUDA :: 12 :: 12.4",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
 ]
+
+[project.urls]
+Homepage = "https://agenticei.github.io/ParallelWorld-page/"
+Repository = "https://github.com/AgenticEI/ParallelWorld"
+Paper = "https://arxiv.org/abs/2608.22971"
 
 dependencies = [
     "pydantic-ai-slim[anthropic,openai]>=2.1",

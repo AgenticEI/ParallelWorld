@@ -1,10 +1,10 @@
-# parallelworld_manipulation
+# ParallelWorld Manipulation
 
-This directory implements parallelworld for robotic manipulation on LIBERO-Pro. The agent proposes candidate manipulation actions, predicts their visual outcomes, evaluates the candidates against the task, and executes the selected action in the simulator. The implementation builds on [RPent](https://github.com/RLinf/RPent).
+This directory implements ParallelWorld for robotic manipulation on LIBERO-Pro. The agent proposes candidate manipulation actions, predicts their visual outcomes, evaluates the candidates against the task, and executes the selected action in the simulator. The implementation builds on [RPent](https://github.com/RLinf/RPent).
 
 ## Installation
 
-Use Linux with NVIDIA GPUs and an EGL-capable MuJoCo environment. The package supports Python `>=3.10,<3.13`; the evaluation environment used Python 3.11. Install this source directory rather than a separate upstream RPent checkout so that the parallelworld modules and prompts are included.
+Use Linux with NVIDIA GPUs and an EGL-capable MuJoCo environment. The package supports Python `>=3.10,<3.13`; the evaluation environment used Python 3.11. Install this source directory rather than a separate upstream RPent checkout so that the ParallelWorld modules and prompts are included.
 
 The reference software versions are recorded in [configs/environment_versions.json](../configs/environment_versions.json). This file describes the evaluation environment and is not a complete dependency lockfile.
 
@@ -87,7 +87,7 @@ The planner backend is `codex`. Provider prefixes for verifier and enhancer mode
 
 The launchers select the planner default by suite: Spatial and Object use `gpt-5.5`, while Goal and LIBERO-10 use `gpt-5.6-sol`. Set `PW_PLANNER_MODEL` to override the suite default; a matching `PW_TRIAL_MODEL_CONFIG` profile takes precedence. The verifier, prompt enhancer, and image model should also be configured explicitly as shown in the evaluation commands below.
 
-All GPT Image evaluations use `quality=low`, `size=1024x1024`, one terminal-state prediction per candidate, and disabled TTS. The batch launchers set 100 planner turns and 10,000 simulator steps per episode. parallelworld uses up to four initial candidates, at most three retained parents, four children per parent, and a maximum search depth of four.
+All GPT Image evaluations use `quality=low`, `size=1024x1024`, one terminal-state prediction per candidate, and disabled TTS. The batch launchers set 100 planner turns and 10,000 simulator steps per episode. ParallelWorld uses up to four initial candidates, at most three retained parents, four children per parent, and a maximum search depth of four.
 
 Check the entry point and API configuration before evaluating:
 

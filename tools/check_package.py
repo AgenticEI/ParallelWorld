@@ -10,6 +10,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
+
 
 def check(root: Path) -> dict:
     root = root.resolve()
@@ -37,7 +42,6 @@ def check(root: Path) -> dict:
                     raise ValueError(run.stderr.strip())
             elif file.suffix == '.toml':
                 counts['toml_files'] += 1
-                import tomllib
                 tomllib.loads(file.read_text(encoding='utf-8-sig'))
             elif file.suffix == '.json':
                 counts['json_files'] += 1
